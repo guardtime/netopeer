@@ -106,6 +106,8 @@ CFGS =	config/netopeer-cfgnetopeer.yin \
 	config/ietf-netconf-server-schematron.xsl \
 	@SERVER_TLS_CFGS@
 
+AGENTSCFG = agents.conf
+
 CFGS_TAR = $(CFGS) \
 	config/netopeer-cfgnetopeer.yang \
 	config/ietf-netconf-server.yang \
@@ -233,5 +235,6 @@ install: $(SERVER) $(TOOLS) $(CFGS) $(MANPAGES) $(MANHTMLS)
 			(mkdir -p $(DESTDIR)/$(datarootdir)/netopeer/; chmod 755 $(DESTDIR)/$(datarootdir)/netopeer/); \
 	fi
 	$(foreach man,$(MANHTMLS),$(INSTALL_DATA) $(man) $(DESTDIR)/$(datarootdir)/netopeer/;)
+	$(INSTALL_DATA_PRIVATE) $(AGENTSCFG) ${prefix}/etc/netopeer/;
 
 
