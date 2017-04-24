@@ -3,10 +3,10 @@
 int orca_agents_parse()
 {
     FILE    *fp=NULL;
-    char    *agent=NULL, *host=NULL, *port=NULL;
+    char    *agent=NULL, *host=NULL;
     int	    rv=0;
 
-    fp = fopen(AGENTS_PATH"/"AGENTS_FILE, "r");
+    fp = fopen(ORCA_AGENTS_PATH"/"ORCA_AGENTS_FILE, "r");
     if (fp == NULL)
     {
 	nc_verb_verbose("fopen");
@@ -16,14 +16,27 @@ int orca_agents_parse()
 
     while (!feof(fp))
     {
-	rv = fscanf(fp, "%ms %ms %ms\n", &agent, &host, &port);
+	rv = fscanf(fp, "%ms %ms\n", &agent, &host);
 	if (rv > 0)
 	{
-	    printf("rv: %d agent: %s host: %s port: %s\n",
-		    rv, agent, host, port);
-	    free(agent);
-	    free(host);
-	    free(port);
+	    printf("rv: %d agent: %s host: %s\n",
+		    rv, agent, host);
+	    if (strstr(agent, ORCA_AGGR_NAME))
+	    {
+		orca_aggr_ns = agent;
+		orca_aggr_url = host;
+	    }
+	    else if (strstr(agent, ORCA_EXTD_NAME))
+	    {
+		orca_extd_ns = agent;
+		orca_extd_url = host;
+	    }
+	    else
+	    {
+		nc_verb_verbose("Unsupported agent: %s", agent);
+		free(agent);
+		free(host);
+	    }
 	}
 	else if (errno != 0)
 	{
@@ -46,5 +59,27 @@ int orca_agents_parse()
 
 cleanup:
     return rv;
+}
+
+
+int orca_agents_show()
+{
+    int rv=0;
+
+    nc_verb_verbose("ksi_aggregator ns: %s\turl: %s",
+	    orca_aggr_ns, orca_aggr_url);
+    nc_verb_verbose("ksi_extender ns: %s\turl: %s",
+	    orca_extd_ns, orca_extd_url);
+
+    return rv;
+}
+
+
+void orca_cleanup()
+{
+    free(orca_extd_ns);
+    free(orca_extd_url);
+    free(orca_extd_ns);
+    free(orca_extd_url);
 }
 

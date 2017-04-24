@@ -64,6 +64,7 @@
 #include <libnetconf_xml.h>
 
 #include "server.h"
+#include "orca.h"
 
 static const char rcsid[] __attribute__((used)) ="$Id: "__FILE__": "RCSID" $";
 
@@ -82,6 +83,12 @@ struct np_state netopeer_state = {
 volatile int quit = 0, restart_soft = 0, restart_hard = 0;
 
 volatile int server_start = 0;
+
+/* Pointers to the namespaces and URLs for the Orca agents */
+char	*orca_aggr_ns = NULL;
+char	*orca_aggr_url = NULL;
+char	*orca_extd_ns = NULL;
+char	*orca_extd_url = NULL;
 
 void clb_print(NC_VERB_LEVEL level, const char* msg) {
 	switch (level) {
@@ -829,6 +836,11 @@ restart:
 		return EXIT_FAILURE;
 	}
 
+	if (orca_agents_parse() != 0) {
+	    nc_verb_error("Could not parse agents.conf");
+	    return EXIT_FAILURE;
+	}
+
 	server_start = 0;
 	nc_verb_verbose("Netopeer server successfully initialized.");
 
@@ -868,6 +880,8 @@ restart:
 	 *have been allocated by the parser.
 	 */
 	xmlCleanupParser();
+	orca_cleanup();
 
 	return EXIT_SUCCESS;
 }
+

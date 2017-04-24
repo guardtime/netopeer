@@ -62,6 +62,7 @@
 #include <libssh/server.h>
 
 #include "../server.h"
+#include "../orca.h"
 
 static const char rcsid[] __attribute__((used)) ="$Id: "__FILE__": "RCSID" $";
 
@@ -624,6 +625,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 
 		case NC_OP_GETCONFIG:
 			nc_verb_verbose("Received a <get-config> RPC with msgid \"%s\" .", nc_rpc_get_msgid(rpc));
+			orca_agents_show();
 			if ((rpc_reply = ncds_apply_rpc2all(chan->nc_sess, rpc, NULL)) == NULL) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "For unknown reason no reply was returned by the library.");
@@ -633,6 +635,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 
 		case NC_OP_GET:
 			nc_verb_verbose("Received a <get> RPC with msgid \"%s\" .", nc_rpc_get_msgid(rpc));
+			orca_agents_show();
 			if ((rpc_reply = ncds_apply_rpc2all(chan->nc_sess, rpc, NULL)) == NULL) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "For unknown reason no reply was returned by the library.");
