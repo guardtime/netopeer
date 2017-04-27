@@ -2,4 +2,18 @@ tags
 *.o
 *~
 .*.swp
+*.rng
+*.pyc
+*.tmp
+*.status
+.libs
+.obj
+*.log
+*.spec
+*.la
+libtool
+*.
+cli/netopeer-cli
+server/manager/netopeer-manager
+server/netopeer-server
 

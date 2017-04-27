@@ -90,6 +90,9 @@ char	*orca_aggr_url = NULL;
 char	*orca_extd_ns = NULL;
 char	*orca_extd_url = NULL;
 
+/* Libcurl handle for REST API calls */
+CURL	*curl = NULL;
+
 void clb_print(NC_VERB_LEVEL level, const char* msg) {
 	switch (level) {
 	case NC_VERB_ERROR:
@@ -836,8 +839,8 @@ restart:
 		return EXIT_FAILURE;
 	}
 
-	if (orca_agents_parse() != 0) {
-	    nc_verb_error("Could not parse agents.conf");
+	if (orca_init() != 0) {
+	    nc_verb_error("Orca init failed");
 	    return EXIT_FAILURE;
 	}
 
