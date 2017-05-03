@@ -8,8 +8,63 @@ struct Orca_MemBlock {
 };
 
 /* Gloval variables */
+char *orca_rev = NULL;
 
 /* Module code */
+/**********************************************************************/
+static xmlChar *get_attr(xmlNode *node, const char *attr)
+{
+    xmlChar *buf=NULL;
+
+    nc_verb_verbose("%s:%d:%s\n", __FILE__, __LINE__, __func__);
+    if ((node == NULL) || (attr == NULL)) {
+	nc_verb_error("%s:%d:%s: Invalid argument\n",
+		__FILE__, __LINE__, __func__);
+	return NULL;
+    }
+
+    buf = xmlGetProp(node, (const xmlChar *)attr);
+    nc_verb_verbose("%s.%s: %s\n", node->name, attr, buf);
+
+    return buf;
+}
+
+/**********************************************************************/
+static xmlNode *get_node(xmlDoc *doc, const char *elem)
+{
+    xmlNode *cur=NULL;
+
+    printf("%s:%d:%s\n", __FILE__, __LINE__, __func__);
+    if ((doc == NULL) || (elem == NULL)) {
+	nc_verb_error("%s:%d:%s: Invalid argument\n",
+		__FILE__, __LINE__, __func__);
+	goto cleanup;
+    }
+
+    cur = xmlDocGetRootElement(doc);
+
+    if (cur == NULL) {
+	nc_verb_verbose("Null root element\n");
+	goto cleanup;
+    }
+
+    if ((!xmlStrcmp(cur->name, (const xmlChar *)elem))) {
+	goto cleanup;
+    }
+
+    cur = cur->xmlChildrenNode;
+    while (cur != NULL) {
+	nc_verb_verbose("%s: name: %s\n", __func__, cur->name);
+	if ((!xmlStrcmp(cur->name, (const xmlChar *)elem))) {
+	    goto cleanup;
+	}
+	cur = cur->next;
+    }
+
+cleanup:
+    return cur;
+}
+
 /**********************************************************************/
 static size_t orca_write_callback(void *data, size_t size, size_t nmemb,
 				  void *userp)
@@ -113,6 +168,7 @@ void orca_cleanup()
     free(orca_aggr_url);
     free(orca_extd_ns);
     free(orca_extd_url);
+    free(orca_rev);
 
     if (curl)
 	curl_easy_cleanup(curl);
@@ -137,30 +193,32 @@ int orca_init()
 	rv = -1;
 	goto cleanup;
     }
-    orca_revision_get(curl, orca_aggr_url);
 
 cleanup:
     return rv;
 }
 
 /**********************************************************************/
-int orca_revision_get(CURL *curl, const char *agent)
+char * orca_revision_get(CURL *curl, const char *agent)
 {
-    char    *url=NULL;
-    size_t  url_size=0;
-    int	    rv=0;
+    char	*url=NULL;
+    xmlDocPtr	doc=NULL;
+    size_t	url_size=0;
+    int		rv=0;
     struct Orca_MemBlock resp;
 
-    /* size_t orca_write_callback(void *data, size_t size, size_t nmemb,
-				  void *userp) */
     if ((curl == NULL) || (agent == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
 	rv = -1;
 	goto cleanup;
     }
 
-    resp.buffer = malloc(1);
     resp.size = 0;
+    resp.buffer = malloc(1);
+    if (resp.buffer == NULL) {
+	nc_verb_error("%s:%d:%s: malloc", __FILE__, __LINE__, __func__);
+	exit(EXIT_FAILURE);
+    }
 
     url_size = strlen(agent) + strlen(ORCA_URI_REVISION) + 1;
     url = malloc(url_size);
@@ -192,47 +250,116 @@ int orca_revision_get(CURL *curl, const char *agent)
     }
     nc_verb_verbose("Agent reply: %s", resp.buffer);
 
+    /*
+     * Parse the XML document in the buffer.
+     * This macro initializes the library.
+     */
+    LIBXML_TEST_VERSION
+
+    doc = xmlReadMemory(resp.buffer, strlen(resp.buffer),
+			"reply.xml", NULL, 0);
+    if (doc == NULL) {
+        nc_verb_error("xmlReadMemory: Failed to parse agent reply\n");
+	goto cleanup;
+    }
+
+    if (orca_rev != NULL) {
+	/*
+	 * The size of the new revision shouldn't be different from the old
+	 * one but free and reallocate just in case.
+	 */
+	free(orca_rev);
+    }
+    asprintf(&orca_rev, "%s", xmlNodeGetContent(xmlDocGetRootElement(doc)));
+    nc_verb_verbose("Agent Revision: %s", orca_rev);
+
 cleanup:
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
+    free(resp.buffer);
     free(url);
-    return rv;
+    return orca_rev;
 }
 
 /**********************************************************************/
-int orca_config_post(CURL *curl, const char *agent)
+char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
 {
     char    *url=NULL;
-    char    data[BUFSIZ];
+    char    *orca_config=NULL;
+    size_t  url_size=0;
     int	    rv=0;
+    struct Orca_MemBlock resp;
 
-    if ((curl == NULL) || (agent == NULL)) {
+    if ((curl == NULL) || (agent == NULL) || (postdata == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
 	rv = -1;
 	goto cleanup;
     }
+    nc_verb_verbose("%s: postdata: %s", __func__, postdata);
 
-    memset(data, 0, BUFSIZ);
-    sprintf(data, "%s%s", url, ORCA_URI_REVISION);
-    nc_verb_verbose("%s: data: %s", __func__, data);
+    if ((orca_rev = orca_revision_get(curl, agent)) == NULL) {
+	nc_verb_error("%s:%d:%s: Revision not found",
+		__FILE__, __LINE__, __func__);
+	rv = -1;
+	goto cleanup;
+    }
 
-    rv = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+    resp.size = 0;
+    resp.buffer = malloc(1);
+    if (resp.buffer == NULL) {
+	nc_verb_error("%s:%d:%s: malloc", __FILE__, __LINE__, __func__);
+	exit(EXIT_FAILURE);
+    }
+
+    rv = asprintf(&url, "http://localhost:8088/orca/%s%s",
+		    orca_rev, ORCA_URI_CONFIG);
+    if (rv == -1) {
+	nc_verb_error("%s:%d:%s: asprintf", __FILE__, __LINE__, __func__);
+	exit(EXIT_FAILURE);
+    }
+    rv = 0;
+    url_size = strlen(url);
+    nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
+    nc_verb_verbose("%s: url: %s length: %d", __func__, url, strlen(url));
+
     rv |= curl_easy_setopt(curl, CURLOPT_URL, url);
+    rv |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, orca_write_callback);
+    rv |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&resp);
+    rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postdata);
+    rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)url_size);
+
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_east_setopt",
 		__FILE__, __LINE__, __func__);
 	goto cleanup;
     }
+
     rv = curl_easy_perform(curl);
+    if (rv != CURLE_OK) {
+	nc_verb_error("%s:%d:%s: curl_easy_perform",
+		__FILE__, __LINE__, __func__);
+	goto cleanup;
+    }
+    long response_code;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    nc_verb_verbose("Response: %ld", response_code);
+
+    orca_config = strdup(resp.buffer);
+    nc_verb_verbose("Config from agent: %s", orca_config);
 
 cleanup:
-    return rv;
+    free(resp.buffer);
+    free(url);
+    return orca_config;
 }
 
 /**********************************************************************/
-int orca_config_put(CURL *curl, const char *agent)
+int orca_config_put(CURL *curl, const char *agent, const char *putdata)
 {
     char    *url=NULL;
-    char    data[BUFSIZ];
+    size_t  url_size=0;
     int	    rv=0;
+    struct Orca_MemBlock resp;
 
     if ((curl == NULL) || (agent == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
@@ -240,12 +367,46 @@ int orca_config_put(CURL *curl, const char *agent)
 	goto cleanup;
     }
 
-    memset(data, 0, BUFSIZ);
-    //sprintf(data, "%s/orca/%s%s", url, orca_extd_rev, ORCA_URI_CONFIG);
-    nc_verb_verbose("%s: data: %s", __func__, data);
+    if ((orca_rev = orca_revision_get(curl, agent)) == NULL) {
+	nc_verb_error("%s:%d:%s: Revision not found",
+		__FILE__, __LINE__, __func__);
+	rv = -1;
+	goto cleanup;
+    }
 
-    rv = curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+    resp.size = 0;
+    resp.buffer = malloc(1);
+    if (resp.buffer == NULL) {
+	nc_verb_error("%s:%d:%s: malloc", __FILE__, __LINE__, __func__);
+	exit(EXIT_FAILURE);
+    }
+
+    rv = asprintf(&url, "%s/%s%s", agent, orca_rev, ORCA_URI_REVISION);
+    if (rv == -1) {
+	nc_verb_error("%s:%d:%s: asprintf", __FILE__, __LINE__, __func__);
+	exit(EXIT_FAILURE);
+    }
+    url_size = strlen(url);
+    nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
+    nc_verb_verbose("%s: url: %s length: %d", __func__, url, strlen(url));
+    
     rv |= curl_easy_setopt(curl, CURLOPT_URL, url);
+    rv |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, orca_write_callback);
+    rv |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&resp);
+    rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putdata);
+    rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)url_size);
+    if (rv != CURLE_OK) {
+	nc_verb_error("%s:%d:%s: curl_east_setopt",
+		__FILE__, __LINE__, __func__);
+	goto cleanup;
+    }
+
+    rv = curl_easy_perform(curl);
+    if (rv != CURLE_OK) {
+	nc_verb_error("%s:%d:%s: curl_easy_perform",
+		__FILE__, __LINE__, __func__);
+	goto cleanup;
+    }
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_east_setopt",
 		__FILE__, __LINE__, __func__);

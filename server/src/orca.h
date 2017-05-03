@@ -1,6 +1,8 @@
 #ifndef __ORCA_H
 #define __ORCA_H
 
+#define _GNU_SOURCE
+
 /* Includes */
 #include <errno.h>
 #include <stdlib.h>
@@ -8,6 +10,8 @@
 #include <stdio.h>
 #include <libnetconf.h>
 #include <curl/curl.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 
 /* Macro definitions */
 #define ORCA_AGENTS_PATH "/usr/etc/netopeer/"
@@ -31,9 +35,9 @@ int orca_init();
 void orca_cleanup();
 int orca_agents_parse();
 int orca_agents_show();
-int orca_revision_get(CURL *curl, const char *agent);
-int orca_config_post(CURL *curl, const char *agent);
-int orca_config_put(CURL *curl, const char *agent);
+char * orca_revision_get(CURL *curl, const char *agent);
+char * orca_config_post(CURL *curl, const char *agent, const char *postdata);
+int orca_config_put(CURL *curl, const char *agent, const char *putdata);
 
 #endif  /* __ORCA_H */
 
