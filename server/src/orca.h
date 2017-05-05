@@ -23,6 +23,18 @@
 /* NOTE: The actual config URI is /orca/{revision}/config. */
 #define ORCA_URI_CONFIG	    "/config"
 
+#define ORCA_GET_CFG_START  "<get-config>"
+#define ORCA_GET_CFG_END    "</get-config>"
+#define ORCA_SET_CFG_START  "<set-config>"
+#define ORCA_SET_CFG_END    "</set-config>"
+
+/* Data types */
+typedef struct {
+    char    *name;
+    char    *ns;
+    char    *url;
+} Orca_Agent;
+
 /* Global variables */
 extern char	*orca_aggr_ns;
 extern char	*orca_aggr_url;
@@ -35,6 +47,8 @@ int orca_init();
 void orca_cleanup();
 int orca_agents_parse();
 int orca_agents_show();
+char *orca_rpc_get(char *rpc, const char *start, const char *end);
+int orca_get_agent(const char *rpc, Orca_Agent *agent);
 char * orca_revision_get(CURL *curl, const char *agent);
 char * orca_config_post(CURL *curl, const char *agent, const char *postdata);
 int orca_config_put(CURL *curl, const char *agent, const char *putdata);

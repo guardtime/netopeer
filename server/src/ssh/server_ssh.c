@@ -624,18 +624,31 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 			break;
 
 		case NC_OP_GETCONFIG:
-			nc_verb_verbose("Received a <get-config> RPC with msgid \"%s\" .", nc_rpc_get_msgid(rpc));
+			nc_verb_verbose("Received a <get-config> RPC with msgid \"%s\" .",
+				nc_rpc_get_msgid(rpc));
+
+			char *tmp=NULL;
+			Orca_Agent agent;
+			int rv=0;
+
 			orca_agents_show();
-			nc_verb_verbose("target: %d", nc_rpc_get_target(rpc));
-			nc_verb_verbose("ns: %s", nc_rpc_get_ns(rpc));
-			nc_verb_verbose("op: %d", nc_rpc_get_op(rpc));
 			nc_verb_verbose("content: %s", nc_rpc_get_op_content(rpc));
-			orca_revision_get(curl, orca_aggr_url);
+			tmp = nc_rpc_get_op_content(rpc);
+
+			rv = orca_get_agent(tmp, &agent);
+			nc_verb_verbose("AGENT: %s", agent.name);
+
+			tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc));
+
+			rpc_reply = nc_reply_data_ns(tmp, agent.ns);
+			free(tmp);
+#if 0
 			if ((rpc_reply = ncds_apply_rpc2all(chan->nc_sess, rpc, NULL)) == NULL) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "For unknown reason no reply was returned by the library.");
 			    rpc_reply = nc_reply_error(err);
 			}
+#endif  /* 0 */
 			break;
 
 		case NC_OP_GET:
