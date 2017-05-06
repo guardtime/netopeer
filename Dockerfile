@@ -33,7 +33,10 @@ RUN set -e -x; \
     make install; \
     sed -i '/<hostname>/d' /usr/etc/netopeer/ietf-system/datastore.xml
 
-CMD ["/usr/bin/netopeer-server", "-v", "2"]
+# copy composer start script
+COPY composerStart.sh /usr/bin/composerStart.sh
+
+#CMD ["/usr/bin/netopeer-server", "-v", "3"]
 
 # expose ports
 EXPOSE 830
