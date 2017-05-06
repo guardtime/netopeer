@@ -464,6 +464,11 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 	struct nc_err* err;
 	struct chan_struct* chan;
 
+	/* Variables used by Orca */
+	char *tmp=NULL;
+	Orca_Agent agent;
+	int rv=0;
+
 	if (client->to_free) {
 		return 1;
 	}
@@ -623,32 +628,79 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 			pthread_detach(thread);
 			break;
 
+		case NC_OP_EDITCONFIG:
+			nc_verb_verbose("Received a <edit-config> RPC with msgid \"%s\" .",
+				nc_rpc_get_msgid(rpc));
+
+			nc_verb_verbose("content: %s", nc_rpc_get_op_content(rpc));
+			tmp = nc_rpc_get_op_content(rpc);
+
+			rv = orca_get_agent(tmp, "<config>", &agent);
+			if (rv != 0) {
+			    err = nc_err_new(NC_ERR_OP_FAILED);
+			    nc_err_set(err, NC_ERR_PARAM_MSG, "Orca agent not found.");
+			    nc_reply_free(rpc_reply);
+			    rpc_reply = nc_reply_error(err);
+			    goto cleanup_editcfg;
+			} else {
+			    nc_verb_verbose("AGENT: %s", agent.name);
+			    curl = curl_easy_init();
+			    if (curl == NULL) {
+				nc_verb_error("curl_easy_init");
+				err = nc_err_new(NC_ERR_OP_FAILED);
+				nc_err_set(err, NC_ERR_PARAM_MSG, "curl_easy_init failed.");
+				nc_reply_free(rpc_reply);
+				rpc_reply = nc_reply_error(err);
+				goto cleanup_editcfg;
+			    }
+			    tmp = orca_config_put(curl, agent.url, nc_rpc_get_op_content(rpc));
+			    //nc_verb_verbose("REPLY: %s", tmp);
+			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
+			}
+
+cleanup_editcfg:
+			curl_easy_cleanup(curl);
+			free(tmp);
+			tmp = NULL;
+			curl = NULL;
+			
+			break;
+
 		case NC_OP_GETCONFIG:
 			nc_verb_verbose("Received a <get-config> RPC with msgid \"%s\" .",
 				nc_rpc_get_msgid(rpc));
 
-			char *tmp=NULL;
-			Orca_Agent agent;
-			int rv=0;
-
-			orca_agents_show();
 			nc_verb_verbose("content: %s", nc_rpc_get_op_content(rpc));
 			tmp = nc_rpc_get_op_content(rpc);
 
-			rv = orca_get_agent(tmp, &agent);
-			nc_verb_verbose("AGENT: %s", agent.name);
-
-			tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc));
-
-			rpc_reply = nc_reply_data_ns(tmp, agent.ns);
-			free(tmp);
-#if 0
-			if ((rpc_reply = ncds_apply_rpc2all(chan->nc_sess, rpc, NULL)) == NULL) {
+			rv = orca_get_agent(tmp, "<filter>", &agent);
+			if (rv != 0) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
-			    nc_err_set(err, NC_ERR_PARAM_MSG, "For unknown reason no reply was returned by the library.");
+			    nc_err_set(err, NC_ERR_PARAM_MSG, "Orca agent not found.");
+			    nc_reply_free(rpc_reply);
 			    rpc_reply = nc_reply_error(err);
+			    goto cleanup_getcfg;
+			} else {
+			    nc_verb_verbose("AGENT: %s", agent.name);
+			    curl = curl_easy_init();
+			    if (curl == NULL) {
+				nc_verb_error("curl_easy_init");
+				err = nc_err_new(NC_ERR_OP_FAILED);
+				nc_err_set(err, NC_ERR_PARAM_MSG, "curl_easy_init failed.");
+				nc_reply_free(rpc_reply);
+				rpc_reply = nc_reply_error(err);
+				goto cleanup_getcfg;
+			    }
+			    tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc));
+			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
-#endif  /* 0 */
+
+cleanup_getcfg:
+			curl_easy_cleanup(curl);
+			free(tmp);
+			tmp = NULL;
+			curl = NULL;
+
 			break;
 
 		case NC_OP_GET:

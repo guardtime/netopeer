@@ -48,10 +48,10 @@ void orca_cleanup();
 int orca_agents_parse();
 int orca_agents_show();
 char *orca_rpc_get(char *rpc, const char *start, const char *end);
-int orca_get_agent(const char *rpc, Orca_Agent *agent);
+int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent);
 char * orca_revision_get(CURL *curl, const char *agent);
 char * orca_config_post(CURL *curl, const char *agent, const char *postdata);
-int orca_config_put(CURL *curl, const char *agent, const char *putdata);
+char *orca_config_put(CURL *curl, const char *agent, const char *putdata);
 
 #endif  /* __ORCA_H */
 

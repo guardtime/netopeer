@@ -61,7 +61,7 @@ static xmlNode *get_node(xmlDoc *doc, const char *elem)
 {
     xmlNode *cur=NULL;
 
-    printf("%s:%d:%s", __FILE__, __LINE__, __func__);
+    //nc_verb_verbose("%s:%d:%s", __FILE__, __LINE__, __func__);
     if ((doc == NULL) || (elem == NULL)) {
 	nc_verb_error("%s:%d:%s: Invalid argument",
 		__FILE__, __LINE__, __func__);
@@ -139,21 +139,24 @@ cleanup:
 }
 
 /**********************************************************************/
-int orca_get_agent(const char *rpc, Orca_Agent *agent)
+int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
 {
-    char	*data=NULL;
+    char	*data=NULL, *tmp=NULL;
     xmlDocPtr	doc=NULL;
     xmlNodePtr	cur=NULL;
     int		rv=0;
 
-    printf("%s:%d:%s", __FILE__, __LINE__, __func__);
-    if ((rpc == NULL) || (agent == NULL)) {
+    //nc_verb_verbose("%s:%d:%s", __FILE__, __LINE__, __func__);
+    if ((rpc == NULL) || (parent == NULL) || (agent == NULL)) {
 	nc_verb_error("%s:%d:%s: Invalid argument",
 		__FILE__, __LINE__, __func__);
 	rv = -1;
 	goto cleanup;
     }
+    nc_verb_verbose("%s:%d:%s: rpc: %s\nparent: %s",
+	    __FILE__, __LINE__, __func__, rpc, parent);
 
+#if 0
     data = strdup(rpc);
     if (data == NULL) {
 	/* Out of memory */
@@ -161,6 +164,30 @@ int orca_get_agent(const char *rpc, Orca_Agent *agent)
 	exit(EXIT_FAILURE);
     }
     nc_verb_verbose("%s:%d:%s: *** data:\n%s",
+		__FILE__, __LINE__, __func__, data);
+    free(data);
+#endif  /* 0 */
+
+    /*
+     * If the parent element is contained in <> remove them,
+     * otherwise XML name comparisons will fail.
+     */
+    tmp = (char *)parent;
+    if (parent[0] == '<') {
+	tmp++;
+    }
+
+    data = strdup(tmp);
+    if (data == NULL) {
+	/* Out of memory */
+	nc_verb_error("strdup failed");
+	exit(EXIT_FAILURE);
+    }
+
+    if (data[strlen(data)-1] == '>') {
+	data[strlen(data)-1] = '\0';
+    }
+    nc_verb_verbose("%s:%d:%s: *** modified element:\n%s",
 		__FILE__, __LINE__, __func__, data);
 
     /*
@@ -198,27 +225,42 @@ int orca_get_agent(const char *rpc, Orca_Agent *agent)
      * filter element.
      */
     while (cur != NULL) {
-	//nc_verb_verbose("%s: name: %s\n", __func__, cur->name);
-	if (!xmlStrcmp(cur->name, (const xmlChar *)"filter")) {
-	    //nc_verb_verbose("%s: *** Filter found ***", __func__);
+	nc_verb_verbose("%s: AAA name: %s\n", __func__, cur->name);
+	if (!xmlStrcmp(cur->name, (const xmlChar *)data)) {
+	    nc_verb_verbose("%s: cur: %s", __func__, cur->name);
+	    nc_verb_verbose("%s: *** Parent found ***", __func__);
 	    cur = cur->xmlChildrenNode;
 	    break;
 	}
 	cur = cur->next;
     }
 
+    if (cur == NULL) {
+	nc_verb_error("%s: Parent element %s not found", __func__, data);
+	rv = -1;
+	goto cleanup;
+    }
+
+    nc_verb_verbose("KOKOKOKO");
     while (cur != NULL) {
+	nc_verb_verbose("%s: BBB cur: %s", __func__, cur->name);
 	if ((!xmlStrcmp(cur->name, (const xmlChar *)"aggregator")) ||
 	    (!xmlStrcmp(cur->name, (const xmlChar *)"extender"))) {
-	    //nc_verb_verbose("%s: *** Target found ***", __func__);
+	    nc_verb_verbose("%s: cur: %s", __func__, cur->name);
+	    nc_verb_verbose("%s: *** Target found ***", __func__);
 	    break;
 	}
 	cur = cur->next;
     }
 
+    nc_verb_verbose("LALALALA");
     if ((cur) && (cur->ns)) {
 	nc_verb_verbose("%s: target: %s ns: %s",
 		__func__, cur->name, cur->ns->href);
+    } else {
+	nc_verb_error("%s: Agent not found", __func__);
+	rv = -1;
+	goto cleanup;
     }
 
     /* At this point we know the target name and namespace. */
@@ -333,12 +375,14 @@ int orca_init()
     }
     orca_agents_show();
     curl_global_init(CURL_GLOBAL_DEFAULT);
+#if 0
     curl = curl_easy_init();
     if (curl == NULL) {
 	nc_verb_error("curl_easy_init");
 	rv = -1;
 	goto cleanup;
     }
+#endif  /* 0 */
 
 cleanup:
     return rv;
@@ -368,7 +412,7 @@ char * orca_revision_get(CURL *curl, const char *agent)
 
     url_size = strlen(agent) + strlen(ORCA_URI_REVISION) + 1;
     url = malloc(url_size);
-    nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
+    //nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
     if (url == NULL) {
 	nc_verb_error("%s: malloc", __func__);
 	exit(EXIT_FAILURE);
@@ -470,6 +514,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
     nc_verb_verbose("%s: url: %s length: %d\npostdata: %s length: %d",
 	    __func__, url, strlen(url), postdata, strlen(postdata));
 
+    rv |= curl_easy_setopt(curl, CURLOPT_POST, 1L);
     rv |= curl_easy_setopt(curl, CURLOPT_URL, url);
     rv |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, orca_write_callback);
     rv |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&resp);
@@ -502,18 +547,20 @@ cleanup:
 }
 
 /**********************************************************************/
-int orca_config_put(CURL *curl, const char *agent, const char *putdata)
+char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
 {
     char    *url=NULL;
-    size_t  url_size=0;
+    char    *orca_config=NULL;
+    //size_t  url_size=0;
     int	    rv=0;
     struct Orca_MemBlock resp;
 
-    if ((curl == NULL) || (agent == NULL)) {
+    if ((curl == NULL) || (agent == NULL) || (putdata == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
 	rv = -1;
 	goto cleanup;
     }
+    nc_verb_verbose("%s: putdata: %s", __func__, putdata);
 
     if ((orca_rev = orca_revision_get(curl, agent)) == NULL) {
 	nc_verb_error("%s:%d:%s: Revision not found",
@@ -529,20 +576,26 @@ int orca_config_put(CURL *curl, const char *agent, const char *putdata)
 	exit(EXIT_FAILURE);
     }
 
-    rv = asprintf(&url, "%s/%s%s", agent, orca_rev, ORCA_URI_REVISION);
+    rv = asprintf(&url, "%s/orca/%s%s",
+		    agent, orca_rev, ORCA_URI_CONFIG);
+
     if (rv == -1) {
 	nc_verb_error("%s:%d:%s: asprintf", __FILE__, __LINE__, __func__);
 	exit(EXIT_FAILURE);
     }
-    url_size = strlen(url);
-    nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
-    nc_verb_verbose("%s: url: %s length: %d", __func__, url, strlen(url));
-    
+    rv = 0;
+    //url_size = strlen(url);
+    //nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
+    nc_verb_verbose("%s: url: %s length: %d\nputdata: %s length: %d",
+	    __func__, url, strlen(url), putdata, strlen(putdata));
+
+    rv |= curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
     rv |= curl_easy_setopt(curl, CURLOPT_URL, url);
     rv |= curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, orca_write_callback);
     rv |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&resp);
     rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putdata);
-    rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)url_size);
+    rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(putdata));
+
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_east_setopt",
 		__FILE__, __LINE__, __func__);
@@ -555,15 +608,18 @@ int orca_config_put(CURL *curl, const char *agent, const char *putdata)
 		__FILE__, __LINE__, __func__);
 	goto cleanup;
     }
-    if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_east_setopt",
-		__FILE__, __LINE__, __func__);
-	goto cleanup;
-    }
-    rv = curl_easy_perform(curl);
+    long response_code;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    nc_verb_verbose("Response: %ld", response_code);
+
+    orca_config = strdup(resp.buffer);
+    nc_verb_verbose("Config from agent: %s", orca_config);
 
 cleanup:
-    return rv;
+    free(resp.buffer);
+    free(url);
+    return orca_config;
+    /*******/
 }
 
 /**********************************************************************/
