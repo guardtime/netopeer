@@ -1,5 +1,6 @@
 #
 # Example of <get-config> message.
+# Use with "user-rpc" command of netopeer-cli or with curl.
 #
 <get-config>
   <source>
@@ -21,7 +22,9 @@
 <get-config><source><running/></source><filter><aggregator xmlns="urn:guardtime:yang:ksi_aggregator"><aggregator_parents/></aggregator></filter></get-config>
 
 #
-# Example of <edit-confi> message.
+# Example of <edit-config> message.
+# Remove the <edit-config>, <config> and <target> elements if testing with
+# netopeer-cli ("edit-config running" or similar command).
 #
 <edit-config>
   <target>
@@ -39,6 +42,8 @@
 #
 # Same <edit-config> example as above but without line breaks.
 # Suitable for use with the curl utility during agent testing.
+# Remove the <edit-config>, <config> and <target> elements if testing with
+# netopeer-cli ("edit-config running" or similar command).
 #
 <edit-config><target><running/></target><config><aggregator xmlns="urn:guardtime:yang:ksi_aggregator"><aggregator_global><start_on_boot>1</start_on_boot></aggregator_global></aggregator></config></edit-config>
 
