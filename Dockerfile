@@ -3,6 +3,7 @@ FROM centos:7
 # install required packages
 RUN ["yum", "install", "-y", "epel-release"]
 RUN ["yum", "install", "-y", "git", "make", "libtool", "libxml2-devel", "file", "libxslt-devel", "libssh-devel", "libcurl-devel", "python-pip", "libxml2-python", "openssh-server", "augeas-devel" ]
+RUN ["yum", "install", "-y", "readline-devel"]
 RUN ["ssh-keygen", "-A"]
 RUN ["pip", "install", "pyang"]
 
@@ -24,6 +25,14 @@ RUN set -e -x; \
     make install; \
     cp -v config/datastore.xml /usr/etc/netopeer/cfgnetopeer/datastore.xml
 
+# build and install netopeer-cli
+COPY cli /usr/src/netopeer/cli
+RUN set -e -x; \
+    cd /usr/src/netopeer/cli; \
+    ./configure --prefix='/usr'; \
+    make; \
+    make install;
+
 # build and install transAPI/cfgsystem
 COPY transAPI/cfgsystem /usr/src/netopeer/cfgsystem
 RUN set -e -x; \
@@ -34,7 +43,8 @@ RUN set -e -x; \
     sed -i '/<hostname>/d' /usr/etc/netopeer/ietf-system/datastore.xml
 
 # copy composer start script
-COPY composerStart.sh /usr/bin/composerStart.sh
+COPY serverStart.sh /usr/bin/serverStart.sh
+COPY cliStart.sh /usr/bin/cliStart.sh
 
 #CMD ["/usr/bin/netopeer-server", "-v", "3"]
 
