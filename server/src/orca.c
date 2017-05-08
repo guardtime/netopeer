@@ -435,17 +435,18 @@ char * orca_revision_get(CURL *curl, const char *agent, long *status)
     rv |= curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&resp);
 
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_easy_setopt",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: curl_easy_setopt: %d",
+		__FILE__, __LINE__, __func__, rv);
 	goto cleanup;
     }
 
     rv = curl_easy_perform(curl);
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_easy_perform",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
+		__FILE__, __LINE__, __func__, rv);
 	goto cleanup;
     }
+
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
     nc_verb_verbose("Agent reply: %s", resp.buffer);
@@ -535,15 +536,15 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
     rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(postdata));
 
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_east_setopt",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: curl_east_setopt: %d",
+		__FILE__, __LINE__, __func__, rv);
 	goto cleanup;
     }
 
     rv = curl_easy_perform(curl);
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_easy_perform",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
+		__FILE__, __LINE__, __func__, rv);
 	goto cleanup;
     }
 
@@ -611,15 +612,15 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
     rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(putdata));
 
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_east_setopt",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: curl_east_setopt: %d",
+		__FILE__, __LINE__, __func__, rv);
 	goto cleanup;
     }
 
     rv = curl_easy_perform(curl);
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_easy_perform",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
+		__FILE__, __LINE__, __func__, rv);
 	goto cleanup;
     }
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
