@@ -241,7 +241,6 @@ int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
 	goto cleanup;
     }
 
-    nc_verb_verbose("KOKOKOKO");
     while (cur != NULL) {
 	nc_verb_verbose("%s: BBB cur: %s", __func__, cur->name);
 	if ((!xmlStrcmp(cur->name, (const xmlChar *)"aggregator")) ||
@@ -253,7 +252,6 @@ int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
 	cur = cur->next;
     }
 
-    nc_verb_verbose("LALALALA");
     if ((cur) && (cur->ns)) {
 	nc_verb_verbose("%s: target: %s ns: %s",
 		__func__, cur->name, cur->ns->href);
@@ -393,9 +391,10 @@ char * orca_revision_get(CURL *curl, const char *agent)
 {
     char		    *url=NULL;
     xmlDocPtr		    doc=NULL;
+    long		    response_code=0;
     size_t		    url_size=0;
     int			    rv=0;
-    struct Orca_MemBlock    resp;
+    struct Orca_MemBlock    resp={.buffer=NULL, .size=0};
 
     if ((curl == NULL) || (agent == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
@@ -438,6 +437,8 @@ char * orca_revision_get(CURL *curl, const char *agent)
 		__FILE__, __LINE__, __func__);
 	goto cleanup;
     }
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    nc_verb_verbose("Response: %ld", response_code);
     nc_verb_verbose("Agent reply: %s", resp.buffer);
 
     /*
@@ -476,9 +477,9 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
 {
     char    *url=NULL;
     char    *orca_config=NULL;
-    //size_t  url_size=0;
+    long    response_code;
     int	    rv=0;
-    struct Orca_MemBlock resp;
+    struct Orca_MemBlock resp={.buffer=NULL, .size=0};
 
     if ((curl == NULL) || (agent == NULL) || (postdata == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
@@ -533,7 +534,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
 		__FILE__, __LINE__, __func__);
 	goto cleanup;
     }
-    long response_code;
+
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
 
@@ -549,11 +550,11 @@ cleanup:
 /**********************************************************************/
 char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
 {
-    char    *url=NULL;
-    char    *orca_config=NULL;
-    //size_t  url_size=0;
-    int	    rv=0;
-    struct Orca_MemBlock resp;
+    char		    *url=NULL;
+    char		    *orca_config=NULL;
+    long		    response_code;
+    int			    rv=0;
+    struct Orca_MemBlock    resp={.buffer=NULL, .size=0};
 
     if ((curl == NULL) || (agent == NULL) || (putdata == NULL)) {
 	nc_verb_error("%s: Invalid argument", __func__);
@@ -584,8 +585,6 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
 	exit(EXIT_FAILURE);
     }
     rv = 0;
-    //url_size = strlen(url);
-    //nc_verb_verbose("url_size: %lu url@ %p\n", url_size, url);
     nc_verb_verbose("%s: url: %s length: %d\nputdata: %s length: %d",
 	    __func__, url, strlen(url), putdata, strlen(putdata));
 
@@ -608,7 +607,6 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
 		__FILE__, __LINE__, __func__);
 	goto cleanup;
     }
-    long response_code;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
 
@@ -619,7 +617,6 @@ cleanup:
     free(resp.buffer);
     free(url);
     return orca_config;
-    /*******/
 }
 
 /**********************************************************************/
