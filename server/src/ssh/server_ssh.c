@@ -466,6 +466,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 
 	/* Variables used by Orca */
 	char *tmp=NULL;
+	long status=0;
 	Orca_Agent agent;
 	int rv=0;
 
@@ -653,7 +654,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 				rpc_reply = nc_reply_error(err);
 				goto cleanup_editcfg;
 			    }
-			    tmp = orca_config_put(curl, agent.url, nc_rpc_get_op_content(rpc));
+			    tmp = orca_config_put(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
 			    //nc_verb_verbose("REPLY: %s", tmp);
 			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
@@ -691,7 +692,7 @@ cleanup_editcfg:
 				rpc_reply = nc_reply_error(err);
 				goto cleanup_getcfg;
 			    }
-			    tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc));
+			    tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
 			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
 
@@ -706,7 +707,7 @@ cleanup_getcfg:
 		case NC_OP_GET:
 			nc_verb_verbose("Received a <get> RPC with msgid \"%s\" .", nc_rpc_get_msgid(rpc));
 			orca_agents_show();
-			orca_revision_get(curl, orca_aggr_url);
+			orca_revision_get(curl, orca_aggr_url, &status);
 			if ((rpc_reply = ncds_apply_rpc2all(chan->nc_sess, rpc, NULL)) == NULL) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "For unknown reason no reply was returned by the library.");

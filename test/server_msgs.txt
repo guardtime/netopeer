@@ -46,3 +46,14 @@
 # netopeer-cli ("edit-config running" or similar command).
 #
 <edit-config><target><running/></target><config><aggregator xmlns="urn:guardtime:yang:ksi_aggregator"><aggregator_global><start_on_boot>1</start_on_boot></aggregator_global></aggregator></config></edit-config>
+
+#
+# Example <get-config> message for the extender.
+#
+get-config><source><running/></source><filter><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><feed_port/></extender_global></extender></filter></get-config>
+
+#
+# Example <edit-config> message for the extender.
+#
+<edit-config><target><candidate/></target><config><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><start_on_boot>1</start_on_boot></extender_global></extender></config></edit-config>
+

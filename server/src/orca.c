@@ -253,8 +253,14 @@ int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
     }
 
     if ((cur) && (cur->ns)) {
-	nc_verb_verbose("%s: target: %s ns: %s",
-		__func__, cur->name, cur->ns->href);
+	if ((strstr((char *)cur->ns->href, "guardtime")) == NULL) {
+	    nc_verb_error("%s: Wrong namespace: %s",
+		    __func__, cur->ns->href);
+	    rv = -1;
+	    goto cleanup;
+	} else {
+	    nc_verb_verbose("%s: target: %s ns: %s",
+		    __func__, cur->name, cur->ns->href);}
     } else {
 	nc_verb_error("%s: Agent not found", __func__);
 	rv = -1;
@@ -272,6 +278,8 @@ int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
 	agent->ns = orca_extd_ns;
 	agent->url = orca_extd_url;
 	rv = 0;
+    } else {
+	nc_verb_error("%s:%d:%s: Unknown error", __FILE__, __LINE__, __func__);
     }
 
     nc_verb_verbose("%s:%d:%s: agent: %s",
@@ -387,7 +395,7 @@ cleanup:
 }
 
 /**********************************************************************/
-char * orca_revision_get(CURL *curl, const char *agent)
+char * orca_revision_get(CURL *curl, const char *agent, long *status)
 {
     char		    *url=NULL;
     xmlDocPtr		    doc=NULL;
@@ -402,6 +410,7 @@ char * orca_revision_get(CURL *curl, const char *agent)
 	goto cleanup;
     }
 
+    *status = 0;
     resp.size = 0;
     resp.buffer = malloc(1);
     if (resp.buffer == NULL) {
@@ -440,6 +449,7 @@ char * orca_revision_get(CURL *curl, const char *agent)
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
     nc_verb_verbose("Agent reply: %s", resp.buffer);
+    *status = response_code;
 
     /*
      * Parse the XML document in the buffer.
@@ -473,11 +483,12 @@ cleanup:
 }
 
 /**********************************************************************/
-char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
+char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
+			long *status)
 {
     char    *url=NULL;
     char    *orca_config=NULL;
-    long    response_code;
+    long    response_code=0;
     int	    rv=0;
     struct Orca_MemBlock resp={.buffer=NULL, .size=0};
 
@@ -488,13 +499,14 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
     }
     nc_verb_verbose("%s: postdata: %s", __func__, postdata);
 
-    if ((orca_rev = orca_revision_get(curl, agent)) == NULL) {
+    if ((orca_rev = orca_revision_get(curl, agent, status)) == NULL) {
 	nc_verb_error("%s:%d:%s: Revision not found",
 		__FILE__, __LINE__, __func__);
 	rv = -1;
 	goto cleanup;
     }
 
+    *status = 0;
     resp.size = 0;
     resp.buffer = malloc(1);
     if (resp.buffer == NULL) {
@@ -537,6 +549,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata)
 
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
+    *status = response_code;
 
     orca_config = strdup(resp.buffer);
     nc_verb_verbose("Config from agent: %s", orca_config);
@@ -548,7 +561,8 @@ cleanup:
 }
 
 /**********************************************************************/
-char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
+char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
+		      long *status)
 {
     char		    *url=NULL;
     char		    *orca_config=NULL;
@@ -563,13 +577,14 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
     }
     nc_verb_verbose("%s: putdata: %s", __func__, putdata);
 
-    if ((orca_rev = orca_revision_get(curl, agent)) == NULL) {
+    if ((orca_rev = orca_revision_get(curl, agent, status)) == NULL) {
 	nc_verb_error("%s:%d:%s: Revision not found",
 		__FILE__, __LINE__, __func__);
 	rv = -1;
 	goto cleanup;
     }
 
+    *status = 0;
     resp.size = 0;
     resp.buffer = malloc(1);
     if (resp.buffer == NULL) {
@@ -609,6 +624,7 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata)
     }
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
+    *status = response_code;
 
     orca_config = strdup(resp.buffer);
     nc_verb_verbose("Config from agent: %s", orca_config);
