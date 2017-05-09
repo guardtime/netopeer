@@ -9,7 +9,7 @@
   <filter>
     <aggregator xmlns="urn:guardtime:yang:ksi_aggregator">
       <aggregator_global>
-        <start_on_boot/>
+        <syslog_ident/>
       </aggregator_global>
     </aggregator>
   </filter>
@@ -45,7 +45,7 @@
   <config>
     <aggregator xmlns="urn:guardtime:yang:ksi_aggregator">
       <aggregator_global>
-        <start_on_boot>1</start_on_boot>
+        <syslog_ident>orca-aggr</syslog_ident>
       </aggregator_global>
     </aggregator>
   </config>
@@ -91,6 +91,18 @@
 #
 <get-config><source><running/></source><filter><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><feed_port/></extender_global></extender></filter></get-config>
 
+<get-config>
+  <source>
+    <running/>
+  </source>
+  <filter>
+    <extender xmlns="urn:guardtime:yang:ksi_extender">
+      <extender_global>
+        <syslog_ident/>
+      </extender_global>
+    </extender>
+  </filter>
+</get-config>
 
 <get-config>
   <source>
@@ -106,4 +118,18 @@
 #
 # Example <edit-config> message for the extender.
 #
+
+<edit-config>
+  <target>
+    <running/>
+  </target>
+  <config>
+    <extender xmlns="urn:guardtime:yang:ksi_extender">
+      <extender_global>
+        <syslog_ident>orca-extender</syslog_ident>
+      </extender_global>
+    </extender>
+  </config>
+</edit-config>
+
 <edit-config><target><running/></target><config><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><feed_port>18083</feed_port></extender_global></extender></config></edit-config>
