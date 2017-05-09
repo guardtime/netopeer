@@ -12,6 +12,7 @@ char *orca_rev = NULL;
 
 /* Module code */
 /**********************************************************************/
+#ifdef UNUSED  /* Suppress compiler warnings about unused functions */
 static xmlChar *get_ns(xmlNode *node)
 {
     xmlChar *rv=NULL;
@@ -37,8 +38,10 @@ static xmlChar *get_ns(xmlNode *node)
 cleanup:
     return rv;
 }
+#endif  /* UNUSED */
 
 /**********************************************************************/
+#ifdef UNUSED  /* Suppress compiler warnings about unused functions */
 static xmlChar *get_attr(xmlNode *node, const char *attr)
 {
     xmlChar *buf=NULL;
@@ -55,8 +58,10 @@ static xmlChar *get_attr(xmlNode *node, const char *attr)
 
     return buf;
 }
+#endif  /* UNUSED */
 
 /**********************************************************************/
+//#ifdef UNUSED  /* Suppress compiler warnings about unused functions */
 static xmlNode *get_node(xmlDoc *doc, const char *elem)
 {
     xmlNode *cur=NULL;
@@ -91,7 +96,39 @@ static xmlNode *get_node(xmlDoc *doc, const char *elem)
 cleanup:
     return cur;
 }
+//#endif  /* UNUSED */
 
+/**********************************************************************/
+//#ifdef UNUSED  /* Suppress compiler warnings about unused functions */
+static char *get_reply_element(const char *data, const char *elem)
+{
+    char    *rv=NULL;
+    xmlDoc  *doc=NULL;
+    //xmlNode *node=NULL;
+
+    if ((data == NULL) || (elem == NULL)) {
+	goto cleanup;
+    }
+
+    LIBXML_TEST_VERSION
+
+    doc = xmlReadMemory(data, strlen(data), "data.xml", NULL, 0);
+    if (doc == NULL) {
+        nc_verb_error("%s:%d:%s: xmlReadMemory failed",
+		__FILE__, __LINE__, __func__);
+	goto cleanup;
+    }
+
+    //node = get_node(doc, elem);
+    rv = (char *)xmlNodeGetContent(get_node(doc, elem));
+    nc_verb_error("%s: %s: %s", __func__, elem, rv);
+
+cleanup:
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
+    return rv;
+}
+//#endif  /* UNUSED */
 /**********************************************************************/
 static size_t orca_write_callback(void *data, size_t size, size_t nmemb,
 				  void *userp)
@@ -146,7 +183,6 @@ int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
     xmlNodePtr	cur=NULL;
     int		rv=0;
 
-    //nc_verb_verbose("%s:%d:%s", __FILE__, __LINE__, __func__);
     if ((rpc == NULL) || (parent == NULL) || (agent == NULL)) {
 	nc_verb_error("%s:%d:%s: Invalid argument",
 		__FILE__, __LINE__, __func__);
@@ -156,20 +192,8 @@ int orca_get_agent(const char *rpc, const char *parent, Orca_Agent *agent)
     nc_verb_verbose("%s:%d:%s: rpc: %s\nparent: %s",
 	    __FILE__, __LINE__, __func__, rpc, parent);
 
-#if 0
-    data = strdup(rpc);
-    if (data == NULL) {
-	/* Out of memory */
-	nc_verb_error("strdup failed");
-	exit(EXIT_FAILURE);
-    }
-    nc_verb_verbose("%s:%d:%s: *** data:\n%s",
-		__FILE__, __LINE__, __func__, data);
-    free(data);
-#endif  /* 0 */
-
     /*
-     * If the parent element is contained in <> remove them,
+     * If the parent element is contained in "<>" remove them,
      * otherwise XML name comparisons will fail.
      */
     tmp = (char *)parent;
@@ -437,6 +461,7 @@ char * orca_revision_get(CURL *curl, const char *agent, long *status)
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_setopt: %d",
 		__FILE__, __LINE__, __func__, rv);
+	*status = (long)rv;
 	goto cleanup;
     }
 
@@ -444,6 +469,7 @@ char * orca_revision_get(CURL *curl, const char *agent, long *status)
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
 		__FILE__, __LINE__, __func__, rv);
+	*status = (long)rv;
 	goto cleanup;
     }
 
@@ -488,7 +514,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
 			long *status)
 {
     char    *url=NULL;
-    char    *orca_config=NULL;
+    char    *orca_resp=NULL;
     long    response_code=0;
     int	    rv=0;
     struct Orca_MemBlock resp={.buffer=NULL, .size=0};
@@ -504,6 +530,8 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
 	nc_verb_error("%s:%d:%s: Revision not found",
 		__FILE__, __LINE__, __func__);
 	rv = -1;
+	*status = -1;
+	orca_resp = strdup("ERROR: Orca revision not found");
 	goto cleanup;
     }
 
@@ -536,8 +564,9 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
     rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(postdata));
 
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_east_setopt: %d",
+	nc_verb_error("%s:%d:%s: curl_easy_setopt: %d",
 		__FILE__, __LINE__, __func__, rv);
+	orca_resp = strdup("ERROR: curl_easy_setopt");
 	goto cleanup;
     }
 
@@ -545,6 +574,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
 		__FILE__, __LINE__, __func__, rv);
+	orca_resp = strdup("ERROR: curl_easy_perform");
 	goto cleanup;
     }
 
@@ -552,21 +582,31 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
     nc_verb_verbose("Response: %ld", response_code);
     *status = response_code;
 
-    orca_config = strdup(resp.buffer);
-    nc_verb_verbose("Config from agent: %s", orca_config);
+    /*
+     * If there is a message element an application-level error has
+     * occured and no data should be present in the agent reply.
+     */
+    if (strstr(resp.buffer, "message") != NULL) {
+	orca_resp = get_reply_element(resp.buffer, "message");
+	nc_verb_error("ERROR: %s", orca_resp);
+	*status = -1;
+	goto cleanup;
+    }
+
+    orca_resp = strdup(resp.buffer);
+    nc_verb_verbose("Agent response: %s", orca_resp);
 
 cleanup:
     free(resp.buffer);
     free(url);
-    return orca_config;
+    return orca_resp;
 }
 
 /**********************************************************************/
 char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
 		      long *status)
 {
-    char		    *url=NULL;
-    char		    *orca_config=NULL;
+    char		    *url=NULL, *orca_resp=NULL;
     long		    response_code;
     int			    rv=0;
     struct Orca_MemBlock    resp={.buffer=NULL, .size=0};
@@ -579,9 +619,11 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
     nc_verb_verbose("%s: putdata: %s", __func__, putdata);
 
     if ((orca_rev = orca_revision_get(curl, agent, status)) == NULL) {
-	nc_verb_error("%s:%d:%s: Revision not found",
-		__FILE__, __LINE__, __func__);
+	nc_verb_error("%s:%d:%s: %ld Revision not found",
+		__FILE__, __LINE__, __func__, *status);
 	rv = -1;
+	*status = -1;
+	orca_resp = strdup("ERROR: Orca revision not found");
 	goto cleanup;
     }
 
@@ -621,19 +663,32 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
 		__FILE__, __LINE__, __func__, rv);
+	orca_resp = strdup("ERROR: curl_easy_perform");
+	*status = (long)rv;
 	goto cleanup;
     }
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
     nc_verb_verbose("Response: %ld", response_code);
     *status = response_code;
 
-    orca_config = strdup(resp.buffer);
-    nc_verb_verbose("Config from agent: %s", orca_config);
+    /*
+     * If there is a message element an application-level error has
+     * occured and no data should be present in the agent reply.
+     */
+    if (strstr(resp.buffer, "message") != NULL) {
+	orca_resp = get_reply_element(resp.buffer, "message");
+	nc_verb_error("ERROR: %s", orca_resp);
+	*status = -1;
+	goto cleanup;
+    }
+
+    orca_resp = strdup(resp.buffer);
+    nc_verb_verbose("Agent response: %s", orca_resp);
 
 cleanup:
     free(resp.buffer);
     free(url);
-    return orca_config;
+    return orca_resp;
 }
 
 /**********************************************************************/
