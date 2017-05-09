@@ -637,6 +637,8 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 			tmp = nc_rpc_get_op_content(rpc);
 
 			rv = orca_get_agent(tmp, "<config>", &agent);
+			free(tmp);
+			tmp = NULL;
 			if (rv != 0) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "Orca agent not found.");
@@ -655,6 +657,13 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 				goto cleanup_editcfg;
 			    }
 			    tmp = orca_config_put(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
+			    if (status != 200) {
+				err = nc_err_new(NC_ERR_OP_FAILED);
+				nc_err_set(err, NC_ERR_PARAM_MSG, tmp);
+				nc_reply_free(rpc_reply);
+				rpc_reply = nc_reply_error(err);
+				goto cleanup_editcfg;
+			    }
 			    //nc_verb_verbose("REPLY: %s", tmp);
 			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
@@ -675,6 +684,8 @@ cleanup_editcfg:
 			tmp = nc_rpc_get_op_content(rpc);
 
 			rv = orca_get_agent(tmp, "<filter>", &agent);
+			free(tmp);
+			tmp = NULL;
 			if (rv != 0) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "Orca agent not found.");
@@ -693,6 +704,13 @@ cleanup_editcfg:
 				goto cleanup_getcfg;
 			    }
 			    tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
+			    if (status != 200) {
+				err = nc_err_new(NC_ERR_OP_FAILED);
+				nc_err_set(err, NC_ERR_PARAM_MSG, tmp);
+				nc_reply_free(rpc_reply);
+				rpc_reply = nc_reply_error(err);
+				goto cleanup_getcfg;
+			    }
 			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
 
