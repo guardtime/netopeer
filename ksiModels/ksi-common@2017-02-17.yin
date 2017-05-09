@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="ksi-common"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:ksicom="urn:guardtime:yang:ksi-common">
+  <namespace uri="urn:guardtime:yang:ksi-common"/>
+  <prefix value="ksicom"/>
+  <organization>
+    <text>Guardtime</text>
+  </organization>
+  <contact>
+    <text>support@guardtime.com</text>
+  </contact>
+  <description>
+    <text>The module includes config items common for ksi aggregator and extender services</text>
+  </description>
+  <revision date="2017-02-17">
+    <description>
+      <text>Support KSI aggregator and extender release 3.9 and above</text>
+    </description>
+  </revision>
+  <typedef name="ksi_hash_algorithm">
+    <type name="enumeration">
+      <enum name="sha1"/>
+      <enum name="sha256"/>
+      <enum name="sha384"/>
+      <enum name="sha512"/>
+      <enum name="ripemd160"/>
+    </type>
+  </typedef>
+  <typedef name="syslog_facility">
+    <type name="enumeration">
+      <enum name="kernal"/>
+      <enum name="user"/>
+      <enum name="mail"/>
+      <enum name="daemon"/>
+      <enum name="auth"/>
+      <enum name="syslogd"/>
+      <enum name="printer"/>
+      <enum name="network"/>
+      <enum name="uucp"/>
+      <enum name="authpriv"/>
+      <enum name="ftp"/>
+      <enum name="cron"/>
+      <enum name="local0"/>
+      <enum name="local1"/>
+      <enum name="local2"/>
+      <enum name="local3"/>
+      <enum name="local4"/>
+      <enum name="local5"/>
+      <enum name="local6"/>
+      <enum name="local7"/>
+    </type>
+  </typedef>
+  <typedef name="debug_level">
+    <type name="uint8">
+      <range value="0 .. 3"/>
+    </type>
+  </typedef>
+  <grouping name="parent_session">
+    <leaf name="protocol">
+      <type name="enumeration">
+        <enum name="tcp"/>
+      </type>
+      <description>
+        <text>parent connection session transport protocol</text>
+      </description>
+    </leaf>
+    <leaf name="host">
+      <type name="string"/>
+      <description>
+        <text>parent host or ip</text>
+      </description>
+    </leaf>
+  </grouping>
+  <grouping name="client_permit">
+    <leaf name="protocol">
+      <type name="enumeration">
+        <enum name="tcp"/>
+      </type>
+      <description>
+        <text>cliet connectionn permit transport protocol</text>
+      </description>
+    </leaf>
+    <leaf name="host">
+      <type name="string"/>
+      <description>
+        <text>client host or ip</text>
+      </description>
+    </leaf>
+  </grouping>
+</module>

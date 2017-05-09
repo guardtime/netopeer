@@ -33,6 +33,9 @@ RUN set -e -x; \
     make; \
     make install;
 
+# copy ksi models
+COPY ksiModels /usr/src/netopeer/ksiModels
+
 # build and install transAPI/cfgsystem
 COPY transAPI/cfgsystem /usr/src/netopeer/cfgsystem
 RUN set -e -x; \

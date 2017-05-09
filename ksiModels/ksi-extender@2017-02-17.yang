@@ -1,0 +1,278 @@
+module ksi-extender {
+    namespace "urn:guardtime:yang:ksi-extender";
+    prefix "gt";
+
+    import ksi-common {
+             prefix "ksicom";
+             revision-date 2017-02-17;
+    }
+
+    organization "Guardtime";
+    contact "support@guardtime.com";
+
+    description
+        "The module includes config items for ksi extender service";
+
+    revision 2017-02-17 {
+        description "Support KSI extender release 3.9 and above";
+    }
+
+    grouping parent_common {
+        leaf login_id{
+            type string;
+            description "login id to the parent";
+        }
+        leaf key{
+            type string;
+            description "shared secret key with the parent";
+        }
+        leaf mac_algorithm{
+            type ksicom:ksi_hash_algorithm;
+            description "HMAC algorithm used for authentication between client/parent";
+            default sha256;
+        }
+        leaf poll {
+            type uint8;
+            description "Optional and for legacy parent only. 0: Subscribes to immediate updates from capable parent. 1: Uses polling based communication with (legacy) parent.";
+            default 0;
+        }
+        leaf rate {
+            type uint8;
+            description "Optional. maximum number of recovery rounds per second allowed by parent";
+        }
+    }
+
+
+    grouping parents {
+            list parent {
+                key "cluster_name";
+                leaf cluster_name{
+                    type string;
+                    description "parent cluster name";
+                }
+                container parent_cluster_common{
+                    uses parent_common;
+                    description "common rules apply to a parent cluster";
+                }
+
+                list parent_cluster_entry{
+                    key "cluster_id";
+                    leaf cluster_id{
+                        type string;
+                        description "cluster ID of this parent";
+                    }
+                    container session{
+                        uses ksicom:parent_session;
+                        description "parent connection session";
+                    }
+                    uses parent_common;
+
+                }
+            }
+        }
+
+
+        grouping client_common {
+
+            leaf login_id{
+                type string;
+                description "client login id";
+            }
+            leaf key{
+                type string;
+                description "shared secret key with the client";
+            }
+            leaf mac_algorithm{
+                type string;
+                description "HMAC algorithm used for authentication between client/parent";
+                default "sha256";
+            }
+            leaf rate{
+                type uint8;
+                description "Max number of recovery rate in rounds per second allowed for this client";
+            }
+        }
+
+        grouping clients {
+                list client{
+                    key "cluster_name";
+                    leaf cluster_name{
+                        type string;
+                        description "client cluster name";
+                    }
+                    list client_cluster_entry {
+                        key "cluster_id";
+                        leaf cluster_id {
+                            type string;
+                            description "client cluster entry id";
+                        }
+                        container permit{
+                            uses ksicom:client_permit;
+                        }
+                        uses client_common;
+                    }
+                    container client_cluster_common{
+                        uses client_common;
+                    }
+
+                }
+            }
+
+        grouping service_user_common {
+
+            leaf login_id{
+                type string;
+                description "client login id";
+            }
+            leaf key{
+                type string;
+                description "shared secret key with the client";
+            }
+            leaf mac_algorithm{
+                type string;
+                description "HMAC algorithm used for authentication between client/parent";
+                default "sha256";
+            }
+        }
+
+        grouping service_users{
+            list service_user{
+                    key "cluster_name";
+                    leaf cluster_name{
+                        type string;
+                        description "service user cluster name";
+                    }
+                    list service_user_cluster_entry {
+                        key "cluster_id";
+                        leaf cluster_id {
+                            type string;
+                            description "service user cluster entry id";
+                        }
+                        container permit{
+                            uses ksicom:client_permit;
+                        }
+                        uses service_user_common;
+                    }
+                    container service_user_cluster_common{
+                        uses service_user_common;
+                    }
+
+                }
+        }
+
+    container extender {
+        container extender_global {
+
+        	leaf syslog_ident {
+        		type string;
+        		description "syslog applicaiton ID";
+        		default "ksi_extender";
+        	}
+
+        	leaf syslog_facility {
+        		type ksicom:syslog_facility;
+        		description "syslog facility for ksi aggregator";
+        		default daemon;
+        	}
+
+            leaf syslog_socket {
+                type string;
+                description "syslog client mode, sync or async";
+                default "sync";
+            }
+
+        	leaf debug {
+        		type ksicom:debug_level;
+        		default 0;
+        	}
+
+        	leaf username {
+        		type string;
+        		description "If running as root, drop privileges to this username.";
+        		default "gtime";
+        	}
+
+        	leaf feed_port {
+        		type uint32;
+        		description "The extending service TCP port number";
+        		default 8020;
+        	}
+
+        	leaf extender_port {
+        		type uint32;
+        		description "The recovery service UDP port number";
+        		default 8081;
+        	}
+
+        	leaf query_rate {
+        		type uint32;
+        		description "The number of maximum rounds per second allowed for recovery service";
+        		default 60;
+        	}
+
+        	leaf dbpath {
+        		type string;
+        		description "";
+        		default "/var/lib/gtime/hashdb2";
+        	}
+
+        	leaf max_cached_file {
+        		type uint64;
+        		description "The number of calendar file cached in memory.";
+        		default 2048;
+        	}
+
+        	leaf use_roots_cache_file {
+        		type boolean;
+        		description "The flag controlling the caching of calendar files roots.";
+        		default true;
+        	}
+
+        	leaf top_level_drift {
+        		type int16;
+        		description "Time offset in ms used for layer updates synchronization.";
+                default 100;
+        	}
+
+        	leaf first_item {
+        		type uint64;
+        		description "Configures starting point [time_t] of local database.";
+        		default 0;
+        	}
+
+            leaf mac_algorithm {
+                type ksicom:ksi_hash_algorithm;
+                description "Hash algorithm used for checking integrity of messages (HMAC)";
+            }
+
+            leaf background_db_chck {
+              type uint8;
+              description "Flag to enable continuous database validation in background after starting the application. If not set the database is validated only once at start-up and on reload.";
+              default 0;
+            }
+
+        }
+
+        container extender_advance {
+        	leaf use_subfolders_for_db_files {
+        		type boolean;
+        		description "The flag controlling the caching of calendar files roots. The flag controlling the subfoldering feature activation state. If the feature is enabled on a setup where are already some db files present, those files need to be organized into subfolders beforehand. This can be done with a provided script. After the feature is enabled then it is not advisable to disable it again, otherwise new db files are added to the db_path root folder again and this disrupts the proper ordering of files.";
+        		default false;
+        	}
+        	description "advanced settings are normally kept at default value. changing these settings will interrupt the service please contact service provide if you need to adjust these values";
+        }
+
+        container parents {
+            uses parents;
+        }
+
+        container clients {
+            uses clients;
+        }
+
+        container service_users{
+            uses service_users;
+        }
+    }
+
+}

@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="ksi-aggregator"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:gt="urn:guardtime:yang:ksi_aggregator"
+        xmlns:ksicom="urn:guardtime:yang:ksi-common">
+  <namespace uri="urn:guardtime:yang:ksi_aggregator"/>
+  <prefix value="gt"/>
+  <import module="ksi-common">
+    <prefix value="ksicom"/>
+    <revision-date date="2017-02-17"/>
+  </import>
+  <organization>
+    <text>Guardtime</text>
+  </organization>
+  <contact>
+    <text>support@guardtime.com</text>
+  </contact>
+  <description>
+    <text>The module includes config items for ksi aggregator service</text>
+  </description>
+  <revision date="2017-02-17">
+    <description>
+      <text>Support KSI aggregator release 3.9 and above</text>
+    </description>
+  </revision>
+  <grouping name="parent_common">
+    <leaf name="login_id">
+      <type name="string"/>
+      <description>
+        <text>login id to the parent</text>
+      </description>
+    </leaf>
+    <leaf name="key">
+      <type name="string"/>
+      <description>
+        <text>shared secret key with the parent</text>
+      </description>
+    </leaf>
+    <leaf name="mac_algorithm">
+      <type name="ksicom:ksi_hash_algorithm"/>
+      <description>
+        <text>HMAC algorithm used for authentication between client/parent</text>
+      </description>
+      <default value="sha256"/>
+    </leaf>
+    <leaf name="type">
+      <type name="enumeration">
+        <enum name="legacy"/>
+        <enum name="ksi"/>
+      </type>
+      <description>
+        <text>KSI application protocol type</text>
+      </description>
+      <default value="ksi"/>
+    </leaf>
+    <leaf name="name">
+      <type name="string"/>
+      <description>
+        <text>login name used to connect to this parent.  Parent must have the same name configured for this client</text>
+      </description>
+      <default value=""/>
+    </leaf>
+  </grouping>
+  <grouping name="parents">
+    <list name="parent">
+      <key value="cluster_name"/>
+      <leaf name="cluster_name">
+        <type name="string"/>
+        <description>
+          <text>parent cluster name</text>
+        </description>
+      </leaf>
+      <container name="parent_cluster_common">
+        <uses name="parent_common"/>
+        <description>
+          <text>common rules apply to a parent cluster</text>
+        </description>
+      </container>
+      <list name="parent_cluster_entry">
+        <key value="cluster_id"/>
+        <leaf name="cluster_id">
+          <type name="string"/>
+          <description>
+            <text>cluster ID of this parent</text>
+          </description>
+        </leaf>
+        <container name="session">
+          <uses name="ksicom:parent_session"/>
+          <description>
+            <text>parent connection session</text>
+          </description>
+        </container>
+        <uses name="parent_common"/>
+      </list>
+    </list>
+  </grouping>
+  <grouping name="client_common">
+    <leaf name="login_id">
+      <type name="string"/>
+      <description>
+        <text>client login id</text>
+      </description>
+    </leaf>
+    <leaf name="key">
+      <type name="string"/>
+      <description>
+        <text>shared secret key with the client</text>
+      </description>
+    </leaf>
+    <leaf name="mac_algorithm">
+      <type name="string"/>
+      <description>
+        <text>HMAC algorithm used for authentication between client/parent</text>
+      </description>
+      <default value="sha256"/>
+    </leaf>
+    <leaf name="depth">
+      <type name="uint8"/>
+      <description>
+        <text>Max allowed aggregation chain length per request for this client</text>
+      </description>
+    </leaf>
+    <leaf name="name">
+      <type name="string"/>
+      <description>
+        <text>Client's user name, must match with the name parameter set in the parent configuration of this client</text>
+      </description>
+      <default value=""/>
+    </leaf>
+  </grouping>
+  <grouping name="clients">
+    <list name="client">
+      <key value="cluster_name"/>
+      <leaf name="cluster_name">
+        <type name="string"/>
+        <description>
+          <text>client cluster name</text>
+        </description>
+      </leaf>
+      <list name="client_cluster_entry">
+        <key value="cluster_id"/>
+        <leaf name="cluster_id">
+          <type name="string"/>
+          <description>
+            <text>client cluster entry id</text>
+          </description>
+        </leaf>
+        <container name="permit">
+          <uses name="ksicom:client_permit"/>
+        </container>
+        <uses name="client_common"/>
+      </list>
+      <container name="client_cluster_common">
+        <uses name="client_common"/>
+      </container>
+    </list>
+  </grouping>
+  <grouping name="service_user_common">
+    <leaf name="login_id">
+      <type name="string"/>
+      <description>
+        <text>client login id</text>
+      </description>
+    </leaf>
+    <leaf name="key">
+      <type name="string"/>
+      <description>
+        <text>shared secret key with the client</text>
+      </description>
+    </leaf>
+    <leaf name="mac_algorithm">
+      <type name="string"/>
+      <description>
+        <text>HMAC algorithm used for authentication between client/parent</text>
+      </description>
+      <default value="sha256"/>
+    </leaf>
+    <leaf name="depth">
+      <type name="uint8"/>
+      <description>
+        <text>Max allowed aggregation chain length per request for this client</text>
+      </description>
+    </leaf>
+    <leaf name="name">
+      <type name="string"/>
+      <description>
+        <text>Client's user name, must match with the name parameter set in the parent configuration of this client</text>
+      </description>
+      <default value=""/>
+    </leaf>
+    <leaf name="max_requests">
+      <type name="uint8"/>
+      <description>
+        <text>Service user only parameter, controls max request per round for a service user</text>
+      </description>
+      <default value="0"/>
+    </leaf>
+  </grouping>
+  <grouping name="service_users">
+    <list name="service_user">
+      <key value="cluster_name"/>
+      <leaf name="cluster_name">
+        <type name="string"/>
+        <description>
+          <text>service user cluster name</text>
+        </description>
+      </leaf>
+      <list name="service_user_cluster_entry">
+        <key value="cluster_id"/>
+        <leaf name="cluster_id">
+          <type name="string"/>
+          <description>
+            <text>service user cluster entry id</text>
+          </description>
+        </leaf>
+        <container name="permit">
+          <uses name="ksicom:client_permit"/>
+        </container>
+        <uses name="service_user_common"/>
+      </list>
+      <container name="service_user_cluster_common">
+        <uses name="service_user_common"/>
+      </container>
+    </list>
+  </grouping>
+  <container name="aggregator">
+    <container name="aggregator_global">
+      <leaf name="start_on_boot">
+        <type name="uint8"/>
+        <description>
+          <text>flag to indicate whether to start aggregator service on boot</text>
+        </description>
+        <default value="1"/>
+      </leaf>
+      <leaf name="syslog_ident">
+        <type name="string"/>
+        <description>
+          <text>syslog applicaiton ID</text>
+        </description>
+        <default value="ksi-aggregator"/>
+      </leaf>
+      <leaf name="syslog_facility">
+        <type name="ksicom:syslog_facility"/>
+        <description>
+          <text>syslog facility for ksi aggregator</text>
+        </description>
+        <default value="daemon"/>
+      </leaf>
+      <leaf name="syslog_socket">
+        <type name="string"/>
+        <description>
+          <text>syslog client mode, sync or async</text>
+        </description>
+        <default value="sync"/>
+      </leaf>
+      <leaf name="debug">
+        <type name="ksicom:debug_level"/>
+        <default value="0"/>
+      </leaf>
+      <leaf name="user">
+        <type name="string"/>
+        <description>
+          <text>If running as root, drop privileges to this username.</text>
+        </description>
+        <default value="gtime"/>
+      </leaf>
+      <leaf name="top_aggregator_drift">
+        <type name="int16"/>
+        <description>
+          <text>Specifies timing offset in milliseconds in relation to Top aggregator aggregation timer.</text>
+        </description>
+        <default value="0"/>
+      </leaf>
+      <leaf name="period">
+        <type name="uint16"/>
+        <description>
+          <text>Aggregation period length, in milliseconds.</text>
+        </description>
+        <default value="400"/>
+      </leaf>
+      <leaf name="rounds">
+        <type name="uint8"/>
+        <description>
+          <text>Rounds buffer length that keeps number of aggregation periods of requests waiting for response from upstream network.</text>
+        </description>
+        <default value="20"/>
+      </leaf>
+      <leaf name="parenttimeout">
+        <type name="uint8"/>
+        <description>
+          <text>Network timeout (in seconds) used for communication between parents</text>
+        </description>
+        <default value="5"/>
+      </leaf>
+      <leaf name="slots">
+        <type name="uint8"/>
+        <description>
+          <text>Slots count that each customer can use per connection per period. Possible values: 4 or 8</text>
+        </description>
+        <default value="4"/>
+      </leaf>
+      <leaf name="max_depth">
+        <type name="uint8"/>
+        <description>
+          <text>The maximum allowed aggregation chain length. In runtime the chain length is calculated as the sum of the client's incoming length value and the internal aggregation chain length. It is expected that this parameter has same value as the parent's configured 'depth' value for this aggregator.</text>
+        </description>
+        <default value="32"/>
+      </leaf>
+      <leaf name="aggregation_port">
+        <type name="uint32"/>
+        <description>
+          <text>tcp port of upper level aggregator service</text>
+        </description>
+        <default value="3333"/>
+      </leaf>
+      <leaf name="service_port">
+        <type name="uint32"/>
+        <description>
+          <text>http port of gateway for signing services</text>
+        </description>
+        <default value="8080"/>
+      </leaf>
+      <leaf name="hashalgorithm">
+        <type name="ksicom:ksi_hash_algorithm"/>
+        <description>
+          <text>Hash algorithm used for aggregating the requests from clients.</text>
+        </description>
+        <default value="sha256"/>
+      </leaf>
+      <leaf name="mac_algorithm">
+        <type name="ksicom:ksi_hash_algorithm"/>
+        <description>
+          <text>Hash algorithm used for checking integrity of messages (HMAC)</text>
+        </description>
+        <default value="sha256"/>
+      </leaf>
+    </container>
+    <container name="aggregator_advanced">
+      <leaf name="tinker_foam">
+        <type name="int16"/>
+        <default value="0"/>
+      </leaf>
+      <leaf name="tinker_full">
+        <type name="int16"/>
+        <default value="0"/>
+      </leaf>
+      <description>
+        <text>advanced settings are normally kept at default value. changing these settings will interrupt the service please contact service provide if you need to adjust these values</text>
+      </description>
+    </container>
+    <container name="parents">
+      <uses name="parents"/>
+    </container>
+    <container name="clients">
+      <uses name="clients"/>
+    </container>
+    <container name="service_users">
+      <uses name="service_users"/>
+    </container>
+  </container>
+</module>

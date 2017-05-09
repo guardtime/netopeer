@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module name="ksi-extender"
+        xmlns="urn:ietf:params:xml:ns:yang:yin:1"
+        xmlns:gt="urn:guardtime:yang:ksi-extender"
+        xmlns:ksicom="urn:guardtime:yang:ksi-common">
+  <namespace uri="urn:guardtime:yang:ksi-extender"/>
+  <prefix value="gt"/>
+  <import module="ksi-common">
+    <prefix value="ksicom"/>
+    <revision-date date="2017-02-17"/>
+  </import>
+  <organization>
+    <text>Guardtime</text>
+  </organization>
+  <contact>
+    <text>support@guardtime.com</text>
+  </contact>
+  <description>
+    <text>The module includes config items for ksi extender service</text>
+  </description>
+  <revision date="2017-02-17">
+    <description>
+      <text>Support KSI extender release 3.9 and above</text>
+    </description>
+  </revision>
+  <grouping name="parent_common">
+    <leaf name="login_id">
+      <type name="string"/>
+      <description>
+        <text>login id to the parent</text>
+      </description>
+    </leaf>
+    <leaf name="key">
+      <type name="string"/>
+      <description>
+        <text>shared secret key with the parent</text>
+      </description>
+    </leaf>
+    <leaf name="mac_algorithm">
+      <type name="ksicom:ksi_hash_algorithm"/>
+      <description>
+        <text>HMAC algorithm used for authentication between client/parent</text>
+      </description>
+      <default value="sha256"/>
+    </leaf>
+    <leaf name="poll">
+      <type name="uint8"/>
+      <description>
+        <text>Optional and for legacy parent only. 0: Subscribes to immediate updates from capable parent. 1: Uses polling based communication with (legacy) parent.</text>
+      </description>
+      <default value="0"/>
+    </leaf>
+    <leaf name="rate">
+      <type name="uint8"/>
+      <description>
+        <text>Optional. maximum number of recovery rounds per second allowed by parent</text>
+      </description>
+    </leaf>
+  </grouping>
+  <grouping name="parents">
+    <list name="parent">
+      <key value="cluster_name"/>
+      <leaf name="cluster_name">
+        <type name="string"/>
+        <description>
+          <text>parent cluster name</text>
+        </description>
+      </leaf>
+      <container name="parent_cluster_common">
+        <uses name="parent_common"/>
+        <description>
+          <text>common rules apply to a parent cluster</text>
+        </description>
+      </container>
+      <list name="parent_cluster_entry">
+        <key value="cluster_id"/>
+        <leaf name="cluster_id">
+          <type name="string"/>
+          <description>
+            <text>cluster ID of this parent</text>
+          </description>
+        </leaf>
+        <container name="session">
+          <uses name="ksicom:parent_session"/>
+          <description>
+            <text>parent connection session</text>
+          </description>
+        </container>
+        <uses name="parent_common"/>
+      </list>
+    </list>
+  </grouping>
+  <grouping name="client_common">
+    <leaf name="login_id">
+      <type name="string"/>
+      <description>
+        <text>client login id</text>
+      </description>
+    </leaf>
+    <leaf name="key">
+      <type name="string"/>
+      <description>
+        <text>shared secret key with the client</text>
+      </description>
+    </leaf>
+    <leaf name="mac_algorithm">
+      <type name="string"/>
+      <description>
+        <text>HMAC algorithm used for authentication between client/parent</text>
+      </description>
+      <default value="sha256"/>
+    </leaf>
+    <leaf name="rate">
+      <type name="uint8"/>
+      <description>
+        <text>Max number of recovery rate in rounds per second allowed for this client</text>
+      </description>
+    </leaf>
+  </grouping>
+  <grouping name="clients">
+    <list name="client">
+      <key value="cluster_name"/>
+      <leaf name="cluster_name">
+        <type name="string"/>
+        <description>
+          <text>client cluster name</text>
+        </description>
+      </leaf>
+      <list name="client_cluster_entry">
+        <key value="cluster_id"/>
+        <leaf name="cluster_id">
+          <type name="string"/>
+          <description>
+            <text>client cluster entry id</text>
+          </description>
+        </leaf>
+        <container name="permit">
+          <uses name="ksicom:client_permit"/>
+        </container>
+        <uses name="client_common"/>
+      </list>
+      <container name="client_cluster_common">
+        <uses name="client_common"/>
+      </container>
+    </list>
+  </grouping>
+  <grouping name="service_user_common">
+    <leaf name="login_id">
+      <type name="string"/>
+      <description>
+        <text>client login id</text>
+      </description>
+    </leaf>
+    <leaf name="key">
+      <type name="string"/>
+      <description>
+        <text>shared secret key with the client</text>
+      </description>
+    </leaf>
+    <leaf name="mac_algorithm">
+      <type name="string"/>
+      <description>
+        <text>HMAC algorithm used for authentication between client/parent</text>
+      </description>
+      <default value="sha256"/>
+    </leaf>
+  </grouping>
+  <grouping name="service_users">
+    <list name="service_user">
+      <key value="cluster_name"/>
+      <leaf name="cluster_name">
+        <type name="string"/>
+        <description>
+          <text>service user cluster name</text>
+        </description>
+      </leaf>
+      <list name="service_user_cluster_entry">
+        <key value="cluster_id"/>
+        <leaf name="cluster_id">
+          <type name="string"/>
+          <description>
+            <text>service user cluster entry id</text>
+          </description>
+        </leaf>
+        <container name="permit">
+          <uses name="ksicom:client_permit"/>
+        </container>
+        <uses name="service_user_common"/>
+      </list>
+      <container name="service_user_cluster_common">
+        <uses name="service_user_common"/>
+      </container>
+    </list>
+  </grouping>
+  <container name="extender">
+    <container name="extender_global">
+      <leaf name="syslog_ident">
+        <type name="string"/>
+        <description>
+          <text>syslog applicaiton ID</text>
+        </description>
+        <default value="ksi_extender"/>
+      </leaf>
+      <leaf name="syslog_facility">
+        <type name="ksicom:syslog_facility"/>
+        <description>
+          <text>syslog facility for ksi aggregator</text>
+        </description>
+        <default value="daemon"/>
+      </leaf>
+      <leaf name="syslog_socket">
+        <type name="string"/>
+        <description>
+          <text>syslog client mode, sync or async</text>
+        </description>
+        <default value="sync"/>
+      </leaf>
+      <leaf name="debug">
+        <type name="ksicom:debug_level"/>
+        <default value="0"/>
+      </leaf>
+      <leaf name="username">
+        <type name="string"/>
+        <description>
+          <text>If running as root, drop privileges to this username.</text>
+        </description>
+        <default value="gtime"/>
+      </leaf>
+      <leaf name="feed_port">
+        <type name="uint32"/>
+        <description>
+          <text>The extending service TCP port number</text>
+        </description>
+        <default value="8020"/>
+      </leaf>
+      <leaf name="extender_port">
+        <type name="uint32"/>
+        <description>
+          <text>The recovery service UDP port number</text>
+        </description>
+        <default value="8081"/>
+      </leaf>
+      <leaf name="query_rate">
+        <type name="uint32"/>
+        <description>
+          <text>The number of maximum rounds per second allowed for recovery service</text>
+        </description>
+        <default value="60"/>
+      </leaf>
+      <leaf name="dbpath">
+        <type name="string"/>
+        <description>
+          <text></text>
+        </description>
+        <default value="/var/lib/gtime/hashdb2"/>
+      </leaf>
+      <leaf name="max_cached_file">
+        <type name="uint64"/>
+        <description>
+          <text>The number of calendar file cached in memory.</text>
+        </description>
+        <default value="2048"/>
+      </leaf>
+      <leaf name="use_roots_cache_file">
+        <type name="boolean"/>
+        <description>
+          <text>The flag controlling the caching of calendar files roots.</text>
+        </description>
+        <default value="true"/>
+      </leaf>
+      <leaf name="top_level_drift">
+        <type name="int16"/>
+        <description>
+          <text>Time offset in ms used for layer updates synchronization.</text>
+        </description>
+        <default value="100"/>
+      </leaf>
+      <leaf name="first_item">
+        <type name="uint64"/>
+        <description>
+          <text>Configures starting point [time_t] of local database.</text>
+        </description>
+        <default value="0"/>
+      </leaf>
+      <leaf name="mac_algorithm">
+        <type name="ksicom:ksi_hash_algorithm"/>
+        <description>
+          <text>Hash algorithm used for checking integrity of messages (HMAC)</text>
+        </description>
+      </leaf>
+      <leaf name="background_db_chck">
+        <type name="uint8"/>
+        <description>
+          <text>Flag to enable continuous database validation in background after starting the application. If not set the database is validated only once at start-up and on reload.</text>
+        </description>
+        <default value="0"/>
+      </leaf>
+    </container>
+    <container name="extender_advance">
+      <leaf name="use_subfolders_for_db_files">
+        <type name="boolean"/>
+        <description>
+          <text>The flag controlling the caching of calendar files roots. The flag controlling the subfoldering feature activation state. If the feature is enabled on a setup where are already some db files present, those files need to be organized into subfolders beforehand. This can be done with a provided script. After the feature is enabled then it is not advisable to disable it again, otherwise new db files are added to the db_path root folder again and this disrupts the proper ordering of files.</text>
+        </description>
+        <default value="false"/>
+      </leaf>
+      <description>
+        <text>advanced settings are normally kept at default value. changing these settings will interrupt the service please contact service provide if you need to adjust these values</text>
+      </description>
+    </container>
+    <container name="parents">
+      <uses name="parents"/>
+    </container>
+    <container name="clients">
+      <uses name="clients"/>
+    </container>
+    <container name="service_users">
+      <uses name="service_users"/>
+    </container>
+  </container>
+</module>

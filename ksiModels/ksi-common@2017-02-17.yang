@@ -1,0 +1,90 @@
+
+module ksi-common {
+    namespace "urn:guardtime:yang:ksi-common";
+    prefix "ksicom";
+
+    organization "Guardtime";
+    contact "support@guardtime.com";
+
+    description
+        "The module includes config items common for ksi aggregator and extender services";
+
+    revision 2017-02-17 {
+        description "Support KSI aggregator and extender release 3.9 and above";
+    }
+
+    typedef ksi_hash_algorithm{
+        type enumeration {
+            enum sha1;
+            enum sha256;
+            enum sha384;
+            enum sha512;
+            enum ripemd160;
+        }
+    }
+
+    typedef syslog_facility {
+        type enumeration {
+            enum kernal;
+            enum user;
+            enum mail;
+            enum daemon;
+            enum auth;
+            enum syslogd;
+            enum printer;
+            enum network;
+            enum uucp;
+            enum authpriv;
+            enum ftp;
+            enum cron;
+            enum local0;
+            enum local1;
+            enum local2;
+            enum local3;
+            enum local4;
+            enum local5;
+            enum local6;
+            enum local7;
+        }
+    }
+
+    typedef debug_level {
+        type uint8 {
+            range "0 .. 3";
+        }
+    }
+
+
+    grouping parent_session {
+     leaf protocol{
+            type enumeration {
+               enum tcp;
+            }
+            description "parent connection session transport protocol";
+        }
+        leaf host {
+            type string;
+            description "parent host or ip";
+        }
+    }
+
+
+
+
+
+    grouping client_permit {
+        leaf protocol{
+            type enumeration {
+                 enum tcp;
+                }
+            description "cliet connectionn permit transport protocol";
+        }
+        leaf host {
+            type string;
+            description "client host or ip";
+        }
+   }
+
+
+
+}

@@ -1,0 +1,310 @@
+module ksi-aggregator {
+    namespace "urn:guardtime:yang:ksi_aggregator";
+    prefix "gt";
+    import ksi-common {
+             prefix "ksicom";
+             revision-date 2017-02-17;
+    }
+
+    organization "Guardtime";
+    contact "support@guardtime.com";
+
+    description
+        "The module includes config items for ksi aggregator service";
+
+    revision 2017-02-17 {
+        description "Support KSI aggregator release 3.9 and above";
+    }
+
+
+    grouping parent_common {
+
+        leaf login_id{
+            type string;
+            description "login id to the parent";
+        }
+        leaf key{
+            type string;
+            description "shared secret key with the parent";
+        }
+        leaf mac_algorithm{
+            type ksicom:ksi_hash_algorithm;
+            description "HMAC algorithm used for authentication between client/parent";
+            default sha256;
+        }
+        leaf type {
+            type enumeration {
+                enum legacy;
+                enum ksi;
+            }
+            description "KSI application protocol type";
+            default ksi;
+        }
+        leaf name {
+            type string;
+            description "login name used to connect to this parent.  Parent must have the same name configured for this client";
+            default "";
+        }
+    }
+
+
+    grouping parents {
+            list parent {
+                key "cluster_name";
+                leaf cluster_name{
+                    type string;
+                    description "parent cluster name";
+                }
+                container parent_cluster_common{
+                    uses parent_common;
+                    description "common rules apply to a parent cluster";
+                }
+
+                list parent_cluster_entry{
+                    key "cluster_id";
+                    leaf cluster_id{
+                        type string;
+                        description "cluster ID of this parent";
+                    }
+                    container session{
+                        uses ksicom:parent_session;
+                        description "parent connection session";
+                    }
+                    uses parent_common;
+
+                }
+            }
+        }
+
+        grouping client_common {
+
+            leaf login_id{
+                type string;
+                description "client login id";
+            }
+            leaf key{
+                type string;
+                description "shared secret key with the client";
+            }
+            leaf mac_algorithm{
+                type string;
+                description "HMAC algorithm used for authentication between client/parent";
+                default "sha256";
+            }
+            leaf depth{
+                type uint8;
+                description "Max allowed aggregation chain length per request for this client";
+            }
+            leaf name {
+                type string;
+                description "Client's user name, must match with the name parameter set in the parent configuration of this client";
+                default "";
+            }
+        }
+
+        grouping clients {
+                list client{
+                    key "cluster_name";
+                    leaf cluster_name{
+                        type string;
+                        description "client cluster name";
+                    }
+                    list client_cluster_entry {
+                        key "cluster_id";
+                        leaf cluster_id {
+                            type string;
+                            description "client cluster entry id";
+                        }
+                        container permit{
+                            uses ksicom:client_permit;
+                        }
+                        uses client_common;
+                    }
+                    container client_cluster_common{
+                        uses client_common;
+                    }
+
+                }
+            }
+
+        grouping service_user_common {
+
+            leaf login_id{
+                type string;
+                description "client login id";
+            }
+            leaf key{
+                type string;
+                description "shared secret key with the client";
+            }
+            leaf mac_algorithm{
+                type string;
+                description "HMAC algorithm used for authentication between client/parent";
+                default "sha256";
+            }
+            leaf depth{
+                type uint8;
+                description "Max allowed aggregation chain length per request for this client";
+            }
+            leaf name {
+                type string;
+                description "Client's user name, must match with the name parameter set in the parent configuration of this client";
+                default "";
+            }
+            leaf max_requests {
+                type uint8;
+                description "Service user only parameter, controls max request per round for a service user";
+                default 0;
+            }
+        }
+
+        grouping service_users{
+            list service_user{
+                    key "cluster_name";
+                    leaf cluster_name{
+                        type string;
+                        description "service user cluster name";
+                    }
+                    list service_user_cluster_entry {
+                        key "cluster_id";
+                        leaf cluster_id {
+                            type string;
+                            description "service user cluster entry id";
+                        }
+                        container permit{
+                            uses ksicom:client_permit;
+                        }
+                        uses service_user_common;
+                    }
+                    container service_user_cluster_common{
+                        uses service_user_common;
+                    }
+
+                }
+        }
+
+    container aggregator {
+        container aggregator_global {
+        	leaf start_on_boot {
+        		type uint8;
+        		description "flag to indicate whether to start aggregator service on boot";
+                default 1;
+        	}
+
+        	leaf syslog_ident {
+        		type string;
+        		description "syslog applicaiton ID";
+                default "ksi-aggregator";
+        	}
+
+        	leaf syslog_facility {
+        		type ksicom:syslog_facility;
+        		description "syslog facility for ksi aggregator";
+                default daemon;
+        	}
+
+            leaf syslog_socket {
+                type string;
+                description "syslog client mode, sync or async";
+                default "sync";
+            }
+
+        	leaf debug {
+        		type ksicom:debug_level;
+                default 0;
+        	}
+
+        	leaf user {
+        		type string;
+        		description "If running as root, drop privileges to this username.";
+                default "gtime";
+        	}
+
+        	leaf top_aggregator_drift {
+        		type int16;
+        		description "Specifies timing offset in milliseconds in relation to Top aggregator aggregation timer.";
+                default 0;
+        	}
+
+        	leaf period {
+        		type uint16;
+        		description "Aggregation period length, in milliseconds.";
+                default 400;
+        	}
+
+        	leaf rounds {
+        		type uint8;
+        		description "Rounds buffer length that keeps number of aggregation periods of requests waiting for response from upstream network.";
+                default 20;
+        	}
+
+        	leaf parenttimeout {
+        		type uint8;
+        		description "Network timeout (in seconds) used for communication between parents";
+                default 5;
+        	}
+
+        	leaf slots {
+        		type uint8;
+        		description "Slots count that each customer can use per connection per period. Possible values: 4 or 8";
+                default 4;
+        	}
+
+        	leaf max_depth{
+        		type uint8;
+        		description "The maximum allowed aggregation chain length. In runtime the chain length is calculated as the sum of the client's incoming length value and the internal aggregation chain length. It is expected that this parameter has same value as the parent's configured 'depth' value for this aggregator.";
+                default 32;
+        	}
+
+        	leaf aggregation_port {
+                type uint32;
+                description "tcp port of upper level aggregator service";
+                default 3333;
+            }
+
+            leaf service_port {
+                type uint32;
+                description "http port of gateway for signing services";
+                default 8080;
+            }
+
+            leaf hashalgorithm {
+                type ksicom:ksi_hash_algorithm;
+                description "Hash algorithm used for aggregating the requests from clients.";
+                default sha256;
+            }
+
+            leaf mac_algorithm {
+                type ksicom:ksi_hash_algorithm;
+                description "Hash algorithm used for checking integrity of messages (HMAC)";
+                default sha256;
+            }
+        }
+
+        container aggregator_advanced {
+            leaf tinker_foam {
+                type int16;
+                default 0;
+            }
+            leaf tinker_full {
+                type int16;
+                default 0;
+            }
+
+            description "advanced settings are normally kept at default value. changing these settings will interrupt the service please contact service provide if you need to adjust these values";
+        }
+
+        container parents {
+            uses parents;
+        }
+
+        container clients {
+            uses clients;
+        }
+
+        container service_users{
+            uses service_users;
+        }
+    }
+
+}
