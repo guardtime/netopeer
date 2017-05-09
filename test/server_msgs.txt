@@ -15,6 +15,18 @@
   </filter>
 </get-config>
 
+
+<get-config>
+  <source>
+    <running/>
+  </source>
+  <filter>
+    <aggregator xmlns="urn:guardtime:yang:ksi_aggregator">
+      <parents/>
+    </aggregator>
+  </filter>
+</get-config>
+
 #
 # Same <get-config> example as above but without line breaks.
 # Suitable for use with the curl utility during agent testing.
@@ -39,6 +51,33 @@
   </config>
 </edit-config>
 
+
+#add a parent
+
+<edit-config>
+  <target>
+    <running/>
+  </target>
+  <config>
+    <aggregator xmlns="urn:guardtime:yang:ksi_aggregator">
+      <parents>
+        <parent>
+            <cluster_name>upstream</cluster_name>
+            <parent_cluster_entry>
+              <cluster_id>ar2</cluster_id>
+              <session>
+                <protocol>tcp</protocol>
+                <host>devksiar-la3-02:3334</host>
+              </session>
+              <login_id>agent</login_id>
+              <key>orca</key>
+            </parent_cluster_entry>
+        </parent>
+      </parents>
+    </aggregator>
+  </config>
+</edit-config>
+
 #
 # Same <edit-config> example as above but without line breaks.
 # Suitable for use with the curl utility during agent testing.
@@ -52,8 +91,19 @@
 #
 <get-config><source><running/></source><filter><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><feed_port/></extender_global></extender></filter></get-config>
 
+
+<get-config>
+  <source>
+    <running/>
+  </source>
+  <filter>
+    <extender xmlns="urn:guardtime:yang:ksi_extender">
+      <parents/>
+    </extender>
+  </filter>
+</get-config>
+
 #
 # Example <edit-config> message for the extender.
 #
-<edit-config><target><candidate/></target><config><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><start_on_boot>1</start_on_boot></extender_global></extender></config></edit-config>
-
+<edit-config><target><candidate/></target><config><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><feed_port>18083</feed_port></extender_global></extender></config></edit-config>
