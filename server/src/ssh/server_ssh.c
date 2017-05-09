@@ -465,7 +465,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 	struct chan_struct* chan;
 
 	/* Variables used by Orca */
-	char *tmp=NULL;
+	char *tmp=NULL, *errmsg=NULL;
 	long status=0;
 	Orca_Agent agent;
 	int rv=0;
@@ -658,13 +658,13 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 			    }
 			    tmp = orca_config_put(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
 			    if (status != 200) {
+				asprintf(&errmsg, "%ld: %s", status, tmp);
 				err = nc_err_new(NC_ERR_OP_FAILED);
 				nc_err_set(err, NC_ERR_PARAM_MSG, tmp);
 				nc_reply_free(rpc_reply);
 				rpc_reply = nc_reply_error(err);
 				goto cleanup_editcfg;
 			    }
-			    //nc_verb_verbose("REPLY: %s", tmp);
 			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
 
@@ -705,18 +705,21 @@ cleanup_editcfg:
 			    }
 			    tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
 			    if (status != 200) {
+				asprintf(&errmsg, "%ld: %s", status, tmp);
 				err = nc_err_new(NC_ERR_OP_FAILED);
 				nc_err_set(err, NC_ERR_PARAM_MSG, tmp);
 				nc_reply_free(rpc_reply);
 				rpc_reply = nc_reply_error(err);
 				goto cleanup_getcfg;
-			    }
+			    } 
 			    rpc_reply = nc_reply_data_ns(tmp, agent.ns);
 			}
 
 cleanup_getcfg:
 			curl_easy_cleanup(curl);
+			free(errmsg);
 			free(tmp);
+			errmsg = NULL;
 			tmp = NULL;
 			curl = NULL;
 

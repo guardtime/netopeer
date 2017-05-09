@@ -461,6 +461,7 @@ char * orca_revision_get(CURL *curl, const char *agent, long *status)
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_setopt: %d",
 		__FILE__, __LINE__, __func__, rv);
+	*status = (long)rv;
 	goto cleanup;
     }
 
@@ -468,6 +469,7 @@ char * orca_revision_get(CURL *curl, const char *agent, long *status)
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
 		__FILE__, __LINE__, __func__, rv);
+	*status = (long)rv;
 	goto cleanup;
     }
 
@@ -528,6 +530,8 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
 	nc_verb_error("%s:%d:%s: Revision not found",
 		__FILE__, __LINE__, __func__);
 	rv = -1;
+	*status = -1;
+	orca_resp = strdup("ERROR: Orca revision not found");
 	goto cleanup;
     }
 
@@ -560,8 +564,9 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
     rv |= curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)strlen(postdata));
 
     if (rv != CURLE_OK) {
-	nc_verb_error("%s:%d:%s: curl_east_setopt: %d",
+	nc_verb_error("%s:%d:%s: curl_easy_setopt: %d",
 		__FILE__, __LINE__, __func__, rv);
+	orca_resp = strdup("ERROR: curl_easy_setopt");
 	goto cleanup;
     }
 
@@ -569,6 +574,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
     if (rv != CURLE_OK) {
 	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
 		__FILE__, __LINE__, __func__, rv);
+	orca_resp = strdup("ERROR: curl_easy_perform");
 	goto cleanup;
     }
 
@@ -616,6 +622,8 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
 	nc_verb_error("%s:%d:%s: %ld Revision not found",
 		__FILE__, __LINE__, __func__, *status);
 	rv = -1;
+	*status = -1;
+	orca_resp = strdup("ERROR: Orca revision not found");
 	goto cleanup;
     }
 
@@ -656,6 +664,7 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
 	nc_verb_error("%s:%d:%s: curl_easy_perform: %d",
 		__FILE__, __LINE__, __func__, rv);
 	orca_resp = strdup("ERROR: curl_easy_perform");
+	*status = (long)rv;
 	goto cleanup;
     }
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
