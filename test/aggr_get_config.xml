@@ -1,0 +1,13 @@
+<get-config>
+  <source>
+    <running/>
+  </source>
+  <filter>
+    <aggregator xmlns="urn:guardtime:yang:ksi_aggregator">
+      <aggregator_global>
+        <start_on_boot/>
+      </aggregator_global>
+    </aggregator>
+  </filter>
+</get-config>
+

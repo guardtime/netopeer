@@ -1,0 +1,13 @@
+<get-config>
+  <source>
+    <running/>
+  </source>
+  <filter>
+    <extender xmlns="urn:guardtime:yang:ksi_extender">
+      <extender_global>
+        <feed_port/>
+      </extender_global>
+    </extender>
+  </filter>
+</get-config>
+

@@ -1,0 +1,13 @@
+<edit-config>
+  <target>
+    <running/>
+  </target>
+  <config>
+    <aggregator xmlns="urn:guardtime:yang:ksi_aggregator">
+      <aggregator_global>
+        <start_on_boot>1</start_on_boot>
+      </aggregator_global>
+    </aggregator>
+  </config>
+</edit-config>
+

@@ -1,0 +1,1 @@
+<edit-config><target><running/></target><config><extender xmlns="urn:guardtime:yang:ksi_extender"><extender_global><feed_port>18083</feed_port></extender_global></extender></config></edit-config>
