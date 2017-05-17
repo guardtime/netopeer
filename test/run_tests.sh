@@ -10,6 +10,8 @@
 CLI=`which netopeer-cli`
 NC_USER=$USER
 NC_HOST="localhost"
+MSGS="messages"
+RESULTS="results"
 
 if [ "$CLI" = "" ]; then
   echo "Cannot find netopeer-cli executable"
@@ -20,36 +22,46 @@ fi
 # Iterate through the test message files and send them to the server.
 #
 NUM=0
-for f in $( ls *.xml ); do
+if [ ! -d "$MSGS" ]; then
+  echo -e "\nERROR: Directory $MSGS not found\n"
+  exit 1
+fi
+
+for f in $( ls $MSGS/*.xml ); do
   ((NUM++))
-  msg="$( dirname $f)/$f"
+  msg="$f"
+  basemsg=$( basename "$msg" )
   echo -e "$NUM: Sending message $msg"
-  netopeer-cli &> $msg.out <<ORCATEST
+  netopeer-cli &> $RESULTS/$basemsg.out <<ORCATEST
 connect --login $NC_USER $NC_HOST
 user-rpc --file $msg
 disconnect
 ORCATEST
-
 done
 
 echo -e "\n*** TEST RESULTS ***\n"
 #
-# Count how many test messages got error responses.
+# Generate results report.
 #
 PASSNUM=0
-for v in $( ls *.out); do
+if [ ! -d "$RESULTS" ]; then
+  echo -e "\nERROR: Directory $RESULTS not found\n"
+  exit 1
+fi
+
+:>$RESULTS/test_report
+for v in $( ls $RESULTS/*.out); do
   grep -i error $v > /dev/null
   status=$?
-#  echo "STATUS($v): $status"
   if [[ $status == 0 ]]; then
-    echo -e "$v:\tERROR"
+    echo -e "$v:\tERROR" | tee -a $RESULTS/test_report
   else
-    echo -e "$v:\tOK"
+    echo -e "$v:\tOK" | tee -a $RESULTS/test_report
     ((PASSNUM++))
   fi
 done
 
-echo -e "\nPASS: $PASSNUM/$NUM\n"
+echo -e "\nPASS: $PASSNUM/$NUM" | tee -a $RESULTS/test_report
 
 exit 0
 

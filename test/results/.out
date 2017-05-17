@@ -1,0 +1,13 @@
+[?1034hnetconf> connect --login kp localhost
+netconf> user-rpc --file messages/extd_get_config.xml
+
+  Result:
+<data xmlns="urn:guardtime:yang:ksi_extender">
+    <extender>
+      <extender_global>
+        <feed_port>8020</feed_port>
+      </extender_global>
+    </extender>
+  </data>
+netconf> disconnect
+netconf> 
