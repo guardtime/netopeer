@@ -465,7 +465,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 	struct chan_struct* chan;
 
 	/* Variables used by Orca */
-	char *tmp=NULL, *errmsg=NULL;
+	char *rpc_data=NULL, *tmp=NULL, *errmsg=NULL;
 	long status=0;
 	Orca_Agent agent;
 	int rv=0;
@@ -633,10 +633,10 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 			nc_verb_verbose("Received a <edit-config> RPC with msgid \"%s\" .",
 				nc_rpc_get_msgid(rpc));
 
-			nc_verb_verbose("content: %s", nc_rpc_get_op_content(rpc));
-			tmp = nc_rpc_get_op_content(rpc);
+			rpc_data = nc_rpc_get_op_content(rpc);
+			nc_verb_verbose("content: %s", rpc_data);
 
-			rv = orca_get_agent(tmp, "<config>", &agent);
+			rv = orca_get_agent(rpc_data, "<config>", &agent);
 			free(tmp);
 			tmp = NULL;
 			if (rv != 0) {
@@ -656,7 +656,7 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 				rpc_reply = nc_reply_error(err);
 				goto cleanup_editcfg;
 			    }
-			    tmp = orca_config_put(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
+			    tmp = orca_config_put(curl, agent.url, rpc_data, &status);
 			    if (status != 200) {
 				asprintf(&errmsg, "%ld: %s", status, tmp);
 				err = nc_err_new(NC_ERR_OP_FAILED);
@@ -670,8 +670,12 @@ int np_ssh_client_netconf_rpc(struct client_struct_ssh* client) {
 
 cleanup_editcfg:
 			curl_easy_cleanup(curl);
+			free(errmsg);
+			free(rpc_data);
 			free(tmp);
 			tmp = NULL;
+			rpc_data = NULL;
+			errmsg = NULL;
 			curl = NULL;
 			
 			break;
@@ -680,10 +684,10 @@ cleanup_editcfg:
 			nc_verb_verbose("Received a <get-config> RPC with msgid \"%s\" .",
 				nc_rpc_get_msgid(rpc));
 
-			nc_verb_verbose("content: %s", nc_rpc_get_op_content(rpc));
-			tmp = nc_rpc_get_op_content(rpc);
+			rpc_data = nc_rpc_get_op_content(rpc);
+			nc_verb_verbose("content: %s", rpc_data);
 
-			rv = orca_get_agent(tmp, "<filter>", &agent);
+			rv = orca_get_agent(rpc_data, "<filter>", &agent);
 			free(tmp);
 			tmp = NULL;
 			if (rv != 0) {
@@ -703,7 +707,7 @@ cleanup_editcfg:
 				rpc_reply = nc_reply_error(err);
 				goto cleanup_getcfg;
 			    }
-			    tmp = orca_config_post(curl, agent.url, nc_rpc_get_op_content(rpc), &status);
+			    tmp = orca_config_post(curl, agent.url, rpc_data, &status);
 			    if (status != 200) {
 				asprintf(&errmsg, "%ld: %s", status, tmp);
 				err = nc_err_new(NC_ERR_OP_FAILED);
@@ -719,8 +723,10 @@ cleanup_getcfg:
 			curl_easy_cleanup(curl);
 			free(errmsg);
 			free(tmp);
-			errmsg = NULL;
+			free(rpc_data);
+			rpc_data = NULL;
 			tmp = NULL;
+			errmsg = NULL;
 			curl = NULL;
 
 			break;
@@ -728,7 +734,6 @@ cleanup_getcfg:
 		case NC_OP_GET:
 			nc_verb_verbose("Received a <get> RPC with msgid \"%s\" .", nc_rpc_get_msgid(rpc));
 			orca_agents_show();
-			orca_revision_get(curl, orca_aggr_url, &status);
 			if ((rpc_reply = ncds_apply_rpc2all(chan->nc_sess, rpc, NULL)) == NULL) {
 			    err = nc_err_new(NC_ERR_OP_FAILED);
 			    nc_err_set(err, NC_ERR_PARAM_MSG, "For unknown reason no reply was returned by the library.");

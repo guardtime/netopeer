@@ -8,7 +8,6 @@ struct Orca_MemBlock {
 };
 
 /* Gloval variables */
-char *orca_rev = NULL;
 
 /* Module code */
 /**********************************************************************/
@@ -382,11 +381,12 @@ int orca_agents_show()
 /**********************************************************************/
 void orca_cleanup()
 {
+    nc_verb_verbose("Cleaning up Orca");
+
     free(orca_aggr_ns);
     free(orca_aggr_url);
     free(orca_extd_ns);
     free(orca_extd_url);
-    free(orca_rev);
 
     if (curl)
 	curl_easy_cleanup(curl);
@@ -405,14 +405,6 @@ int orca_init()
     }
     orca_agents_show();
     curl_global_init(CURL_GLOBAL_DEFAULT);
-#if 0
-    curl = curl_easy_init();
-    if (curl == NULL) {
-	nc_verb_error("curl_easy_init");
-	rv = -1;
-	goto cleanup;
-    }
-#endif  /* 0 */
 
 cleanup:
     return rv;
@@ -421,8 +413,9 @@ cleanup:
 /**********************************************************************/
 char * orca_revision_get(CURL *curl, const char *agent, long *status)
 {
-    char		    *url=NULL;
+    char		    *url=NULL, *orca_rev=NULL;
     xmlDocPtr		    doc=NULL;
+    xmlChar		    *tmpxml=NULL;
     long		    response_code=0;
     size_t		    url_size=0;
     int			    rv=0;
@@ -498,11 +491,14 @@ char * orca_revision_get(CURL *curl, const char *agent, long *status)
 	 */
 	free(orca_rev);
     }
-    asprintf(&orca_rev, "%s", xmlNodeGetContent(xmlDocGetRootElement(doc)));
+
+    tmpxml = xmlNodeGetContent(xmlDocGetRootElement(doc));
+    asprintf(&orca_rev, "%s", tmpxml);
     nc_verb_verbose("Agent Revision: %s", orca_rev);
 
 cleanup:
     xmlFreeDoc(doc);
+    xmlFree(tmpxml);
     xmlCleanupParser();
     free(resp.buffer);
     free(url);
@@ -514,7 +510,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
 			long *status)
 {
     char    *url=NULL;
-    char    *orca_resp=NULL;
+    char    *orca_resp=NULL, *orca_rev=NULL;
     long    response_code=0;
     int	    rv=0;
     struct Orca_MemBlock resp={.buffer=NULL, .size=0};
@@ -599,6 +595,7 @@ char * orca_config_post(CURL *curl, const char *agent, const char *postdata,
 cleanup:
     free(resp.buffer);
     free(url);
+    free(orca_rev);
     return orca_resp;
 }
 
@@ -606,7 +603,7 @@ cleanup:
 char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
 		      long *status)
 {
-    char		    *url=NULL, *orca_resp=NULL;
+    char		    *url=NULL, *orca_resp=NULL, *orca_rev=NULL;
     long		    response_code;
     int			    rv=0;
     struct Orca_MemBlock    resp={.buffer=NULL, .size=0};
@@ -688,6 +685,7 @@ char *orca_config_put(CURL *curl, const char *agent, const char *putdata,
 cleanup:
     free(resp.buffer);
     free(url);
+    free(orca_rev);
     return orca_resp;
 }
 
