@@ -11,6 +11,7 @@ CLI=`which netopeer-cli`
 NC_USER=$USER
 NC_HOST="localhost"
 MSGS="messages"
+REPORT="test_report"
 RESULTS="results"
 
 if [ "$CLI" = "" ]; then
@@ -37,6 +38,7 @@ connect --login $NC_USER $NC_HOST
 user-rpc --file $msg
 disconnect
 ORCATEST
+echo "" >> $RESULTS/$basemsg.out
 done
 
 echo -e "\n*** TEST RESULTS ***\n"
@@ -49,19 +51,19 @@ if [ ! -d "$RESULTS" ]; then
   exit 1
 fi
 
-:>$RESULTS/test_report
+:>$RESULTS/$REPORT
 for v in $( ls $RESULTS/*.out); do
   grep -i error $v > /dev/null
   status=$?
   if [[ $status == 0 ]]; then
-    echo -e "$v:\tERROR" | tee -a $RESULTS/test_report
+    echo -e "$v:\tERROR" | tee -a $RESULTS/$REPORT
   else
-    echo -e "$v:\tOK" | tee -a $RESULTS/test_report
+    echo -e "$v:\tOK" | tee -a $RESULTS/$REPORT
     ((PASSNUM++))
   fi
 done
 
-echo -e "\nPASS: $PASSNUM/$NUM" | tee -a $RESULTS/test_report
+echo -e "\nPASS: $PASSNUM/$NUM" | tee -a $RESULTS/$REPORT
 
 exit 0
 
